@@ -4,7 +4,7 @@ If you use auto-sklearn in scientific publications, we would appreciate citation
 
 **A latent scale model to minimize subjectivity in the analysis of visual rating data for the National Turfgrass Evaluation Program**
 *Yuanshuo Qu, Len Kne, Steve Graham, Eric Watkins, and Kevin Morris*
-Front Plant Scice 2023 July 6;14:1135918
+Front Plant Sci 2023 Jul 6;14:1135918
 
 [Link](https://www.frontiersin.org/articles/10.3389/fpls.2023.1135918/full) to publication.
 ```
