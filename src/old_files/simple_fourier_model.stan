@@ -35,8 +35,6 @@ data {
   array[P] int<lower=1> plot_col;			 // column of the plot
 }
 parameters {
-  vector[I-1] beta_free;
-  vector[M-1] tau_free;
   vector[J] entry;
   // vector[P] eta;                      // normal(0, 1) trick
   real<lower=0> sigma;
@@ -79,11 +77,6 @@ transformed parameters {
   for(i in 1:P) {
     plot[i] = exp(f[plot_row[i],plot_row[i]]);
   }
-  
-  beta[1:(I-1)] = beta_free;
-  beta[I] = -1*sum(beta_free);
-  tau[1:(M-1)] = tau_free;
-  tau[M] = -1*sum(tau_free);
 }
 
 model {
@@ -97,9 +90,7 @@ model {
   length_scale ~ student_t(3,0,1);
   to_vector(z) ~ std_normal();
   mu ~ student_t(2, 0, 1);
-  target += normal_lpdf(beta | 0, 2);
-  target += normal_lpdf(tau | 0, 2);
   for (n in 1:N){
-	target += rsm(y[n], plot[pp[n]], beta[ii[n]], tau);
+	y[n] ~ normal(plot[pp[n]],sigma);
   }
 }
