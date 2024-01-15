@@ -5,7 +5,9 @@ Download the github repository onto the local machine.
 Follow https://python-poetry.org/docs/ to install Poetry.
 
 Run the following terminal commands in the directory of installation:
+
   -> poetry install
+
   -> poetry run jupyter notebook --allow-root
 
 Open the notebook in a browser by copying the notebook link in the terminal
