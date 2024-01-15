@@ -11,8 +11,10 @@ Run the following terminal commands in the directory of installation:
   -> poetry run jupyter notebook --allow-root
 
 Open the notebook in a browser by copying the notebook link in the terminal
+
 run src/model_v8_sharedparams_fit.ipynb to fit the model
-run src/model_v8_sharedparams_analyze.ipynb to load and analyze the model
+
+run src/model_v8_sharedparams_analyze.ipynb to load and analyze the model output
 
 ## Relevant publications
 
