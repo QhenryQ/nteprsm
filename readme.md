@@ -1,6 +1,6 @@
 ## Running the Notebook (Linux)
 
-Download the github repository and install it on a Linux Machine.
+Download the github repository onto the local machine.
 
 Follow https://python-poetry.org/docs/ to install Poetry.
 
