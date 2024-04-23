@@ -13,7 +13,6 @@ functions {
   }
   
   // Hilbert basis methods helper functions
-  
   // Returns the spectral density corresponding to a periodic kernel
   // alpha 	: The variance of the kernel used
   // rho 	: The lengthscale of the kernel
