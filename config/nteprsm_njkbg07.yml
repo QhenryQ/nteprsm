@@ -1,6 +1,6 @@
 data_path: "data/raw/quality_nj2.csv"
 stan_file: "models/nteprsm_turf_annual_seasonality.stan"
-stan_additional_data:
+stan_additional_data:  # additional input for Stan model data block
   M_f: 8          # number of basis function
   pred_N: 100     # number new predictions in a year
   padding: 5      # padding of grid in Fourier Method
