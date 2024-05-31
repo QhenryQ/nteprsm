@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
+import re
 from scipy.spatial import distance_matrix
 
 from nteprsm.constants import NTEP_COLOR_SCALE
@@ -33,6 +34,9 @@ def set_custom_template():
     custom_template["layout"]["xaxis"]["linecolor"] = "black"
     custom_template["layout"]["xaxis"]["mirror"] = True
     custom_template["layout"]["xaxis"]["ticks"] = "outside"
+    # tranparent background
+    custom_template["layout"]["plot_bgcolor"] = "rgba(0, 0, 0, 0)"
+    custom_template["layout"]["plot_bgcolor"] = "rgba(0, 0, 0, 0)"
 
     # Save the custom template
     pio.templates["custom"] = custom_template
@@ -435,3 +439,32 @@ def plot_effect_size(results_data):
         )
     )
     fig.show()
+
+
+def convert_minutes_to_decimal_degrees(degree_minutes: str)->float:
+    """convert degree minutes to decimal degrees
+
+    Args:
+        degree_minutes (str): lattiude or longitude in degree minutes
+
+    Returns:
+        float: lattitude or longitude decimal degrees
+    """
+    dmsd = [s for s in re.split("º|°|'|\"| ", degree_minutes) if s]
+    if dmsd[-1] not in ["N", "S", "E", "W"]:
+        raise ValueError("Invalid degree minutes format")
+    else:
+        dms = dmsd[:-1]  
+
+    if len(dms) == 3:
+        degrees, minutes, seconds = map(int, dms)
+    elif len(dms) == 2:
+        degrees, minutes = map(int, dms)
+        seconds = 0
+    elif len(dms) == 1:
+        degrees = int(dms[0])
+        minutes = 0
+        seconds = 0
+    
+    decimal_degrees = degrees + minutes / 60 + seconds / 3600
+    return (-1)**("S" == dmsd[-1] or "W" == dmsd[-1]) * decimal_degrees
