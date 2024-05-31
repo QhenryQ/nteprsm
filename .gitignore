@@ -1,5 +1,6 @@
 .DS_Store
-/model_output
+/data/model_output
+/reports/manuscript1
 /iframe_figures
 # Byte-compiled / optimized / DLL files
 __pycache__/

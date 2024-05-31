@@ -408,11 +408,13 @@ class PosteriorSampleAnalysis:
 
         if sort_by == "annual":
             entry_codes = sorted(
-                entry_codes, key=lambda e: monthly_means.mean(axis=1).loc[e]
+                entry_codes, key=lambda e: monthly_means.mean(axis=1).loc[e], 
+                reverse=True
             )
         elif sort_by == sort_by and sort_by in MONTH_ABBR:
             entry_codes = sorted(
-                entry_codes, key=lambda e: monthly_means.loc[e, sort_by]
+                entry_codes, key=lambda e: monthly_means.loc[e, sort_by],
+                reverse=True
             )
         else:
             raise ValueError(
@@ -498,17 +500,17 @@ class PosteriorSampleAnalysis:
                     )
                 )
         fig.update_layout(
-            title="Mean Time Effect",
+            # title="Mean Time Effect",
             xaxis=dict(
                 tickmode="array",
                 tickvals=MONTH_BINS[:-1],
                 ticktext=MONTH_ABBR,
                 tickfont=dict(size=18),
             ),
-            yaxis_title="Effect",
+            yaxis_title="Predicted Seasonality in Turf Quality",
             yaxis=dict(title_font=dict(size=20)),
             legend=dict(font=dict(size=16)),  # Increase the font size for the legend
-            title_font=dict(size=24),
+            # title_font=dict(size=24),
         )
         if dimensions:
             fig.update_layout(width=dimensions[0], height=dimensions[1])
