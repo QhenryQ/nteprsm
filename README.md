@@ -20,18 +20,18 @@ Front Plant Sci 2023 Jul 6;14:1135918
 }
 ```
 
-# Installation Guide for `nteprsm` on Mac
+## Installation Guide for `nteprsm` on Mac
 
-## Prerequisites
+### Prerequisites
 
 Before you begin, ensure you have the following installed on your Mac:
 
 - [Homebrew](https://brew.sh/)
 - [Git](https://git-scm.com/)
 - [Python 3.8+](https://www.python.org/)
-- [Visual Studio Code](https://code.visualstudio.com/)
+- [Poetry](https://python-poetry.org/)
 
-## Steps
+### Steps
 
 1. **Install Homebrew** (if not already installed):
     ```sh
@@ -48,25 +48,49 @@ Before you begin, ensure you have the following installed on your Mac:
     brew install python
     ```
 
-4. **Clone the Repository**:
+4. **Install Poetry** (if not already installed):
+    ```sh
+    brew install poetry
+    ```
+
+5. **Clone the Repository**:
     ```sh
     git clone https://github.com/QhenryQ/nteprsm.git
     cd nteprsm
     ```
 
-5. **Open VS Code and Open Terminal**:
-
-    - Open Visual Studio Code.
-    - Navigate to the cloned `nteprsm` repository folder.
-    - Open a terminal within VS Code.
-
-6. **Run the Model**:
+6. **Install Dependencies with Poetry**:
     ```sh
-    nteprsm/model.py config/nteprsm_in1kbg07.yml
+    poetry install
     ```
 
-    The process will start, and you will need to wait until iterations are done. After the process completes, you will have your CSV files ready, which can later be used in Jupyter Notebooks.
+7. **Open VS Code**:
+    - Launch Visual Studio Code (VS Code).
+    - Open the `nteprsm` project folder in VS Code.
 
-## Troubleshooting
+8. **Open Terminal in VS Code and Run the Environment**:
+    - Open the terminal in VS Code (`View > Terminal`).
+    - Activate the Poetry environment by running:
+        ```sh
+        poetry shell
+        ```
+    - Ensure the environment is active.
 
-If you encounter any issues, ensure that all dependencies are installed correctly and that you are in the correct directory in the terminal. For further assistance, please refer to the project's documentation.
+9. **Run the Model**:
+    ```sh
+    python nteprsm/model.py config/nteprsm_in1kbg07.yml
+    ```
+
+10. **Wait for the Iterations to Complete**:
+    - The process will start, and you will need to wait until the iterations are done.
+
+11. **Retrieve the CSV Files**:
+    - After the iterations are complete, the CSV files will be generated.
+    - These CSV files can later be used in Jupyter notebooks.
+
+### Troubleshooting
+
+If you encounter any issues, ensure that all dependencies are installed correctly and that you have activated the Poetry environment. You can deactivate the environment anytime by running:
+```sh
+exit
+
