@@ -90,7 +90,4 @@ Before you begin, ensure you have the following installed on your Mac:
 
 ### Troubleshooting
 
-If you encounter any issues, ensure that all dependencies are installed correctly and that you have activated the Poetry environment. You can deactivate the environment anytime by running:
-```sh
-exit
-
+If you encounter any issues, ensure that all dependencies are installed correctly and that you have activated the Poetry environment.
