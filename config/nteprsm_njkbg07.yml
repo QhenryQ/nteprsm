@@ -1,5 +1,5 @@
 data_path: "data/raw/quality_nj2.csv"
-stan_file: "models/nteprsm_turf_annual_seasonality.stan"
+stan_file: "models/no_consistent_rater_model_dist_matrix.stan"
 stan_additional_data:  # additional input for Stan model data block
   M_f: 8          # number of basis function
   pred_N: 100     # number new predictions in a year
@@ -13,7 +13,7 @@ sampling:
   refresh: 20
   iter_warmup: 500
   iter_sampling: 1500
-  save_warmup: True
+  save_warmup: 1
   output_dir: 'data/model_output' 
   time_fmt: '%Y%m%d'
   show_console: True
