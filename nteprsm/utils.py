@@ -213,6 +213,7 @@ class DataHandler:
                 `self.model_data` to use for the Stan model. Defaults to
                 'quality'.
 
+ 
         Raises:
             ValueError: If `self.model_data` is None, indicating that data has
                 not been loaded or processed properly before this method is called.
@@ -237,6 +238,7 @@ class DataHandler:
             "rater_id": self.model_data.rater_code.values + 1,
             "entry_id": self.model_data.entry_name_code.values + 1,
             "plot_id": self.model_data.plt_id_code.values + 1,
+            "DIST": self.calculate_distance_matrix(),
             "num_ratings_per_entry": self.model_data.groupby("entry_name")
             .count()["plt_id"]
             .max(),
@@ -250,6 +252,19 @@ class DataHandler:
 
         stan_data.update(kwargs)
         self.stan_data = stan_data
+
+    def calculate_distance_matrix(self):
+        if 'row' not in self.model_data.columns or 'col' not in self.model_data.columns:
+            raise ValueError("Plot coordinates ('row' and 'col') must be present in the data.")
+
+        plot_data = self.model_data[['plt_id_code', 'row', 'col']].drop_duplicates()
+        plot_coordinates = plot_data[['row', 'col']].values
+        
+        # Calculate pairwise Euclidean distances
+        from scipy.spatial.distance import pdist, squareform
+        distance_matrix = squareform(pdist(plot_coordinates))
+
+        return distance_matrix
 
     def get_stan_data(self) -> Dict:
         """
