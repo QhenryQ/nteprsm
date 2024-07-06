@@ -29,7 +29,7 @@ else
     echo "UNINSTALLING CURRENT POETRY INSTALLATION"
     curl -sSL https://install.python-poetry.org | python3 - --uninstall
 
-    echo "INSTALLING POETRY VERSION 1.5.1"
+    echo "INSTALLING POETRY VERSION 1.7.1"
     curl -sSL https://install.python-poetry.org | python3 - --version 1.7.1
 
   else
