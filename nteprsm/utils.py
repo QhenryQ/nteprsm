@@ -5,7 +5,8 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from random import sample
 from typing import Dict, Optional
-
+import pymc as pm
+import pytensor.tensor as pt
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -88,6 +89,40 @@ def setup_logging(log_directory="logs"):
 
     return logger
 
+
+def rsm(theta, beta, tau):
+    """
+    Custom function to calculate probabilities based on theta, beta, and tau.
+    """
+    unsummed = pt.concatenate([pt.zeros((theta.shape[0], 1)), pt.outer(theta - beta, pt.ones_like(tau)) - tau], axis=1)
+    cumsum = pt.cumsum(unsummed, axis=1)
+    exp_cumsum = pt.exp(cumsum - pt.max(cumsum, axis=1, keepdims=True))
+    probs = exp_cumsum / pt.sum(exp_cumsum, axis=1, keepdims=True)
+    return probs
+
+def get_nuts_kwargs(config):
+    """
+    Extract NUTS sampler parameters from the configuration.
+    """
+    return {
+        'target_accept': config['sampling'].get('adapt_delta', 0.99),
+        'max_treedepth': config['sampling'].get('max_treedepth', 15),
+    }
+
+def get_sample_kwargs(config, nuts_kwargs):
+    """
+    Extract sampling parameters from the configuration.
+    """
+    return {
+        'draws': config['sampling'].get('iter_sampling', 1500),
+        'tune': config['sampling'].get('iter_warmup', 500),
+        'chains': config['sampling'].get('parallel_chains', 4),
+        'return_inferencedata': True,
+        'random_seed': config['sampling'].get('seed', None),
+        'progressbar': config['sampling'].get('show_progress', True),
+        'init': 'adapt_diag',
+        'nuts': nuts_kwargs,
+    }
 
 def rsm_probability(y, theta, tau):
     """
