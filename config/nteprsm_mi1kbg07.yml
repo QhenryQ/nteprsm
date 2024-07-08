@@ -1,0 +1,19 @@
+data_path: "data/raw/quality_mi1.csv"
+stan_file: "models/nteprsm_turf_annual_seasonality.stan"
+stan_additional_data:  # additional input for Stan model data block
+  M_f: 8          # number of basis function
+  pred_N: 100     # number new predictions in a year
+  padding: 5      # padding of grid in Fourier Method
+sampling: 
+  parallel_chains: 4
+  seed: 1
+  show_progress: True 
+  adapt_delta: 0.99
+  max_treedepth: 15
+  refresh: 20
+  iter_warmup: 500
+  iter_sampling: 1500
+  save_warmup: True
+  output_dir: 'data/model_output/mi1' 
+  time_fmt: '%Y%m%d'
+  show_console: True
