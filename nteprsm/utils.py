@@ -105,8 +105,8 @@ def get_nuts_kwargs(config):
     Extract NUTS sampler parameters from the configuration.
     """
     return {
-        'target_accept': config['sampling'].get('adapt_delta', 0.99),
-        'max_treedepth': config['sampling'].get('max_treedepth', 15),
+        'target_accept': config['sampling'].get('adapt_delta'),
+        'max_treedepth': config['sampling'].get('max_treedepth'),
     }
 
 def get_sample_kwargs(config, nuts_kwargs):
@@ -114,12 +114,12 @@ def get_sample_kwargs(config, nuts_kwargs):
     Extract sampling parameters from the configuration.
     """
     return {
-        'draws': config['sampling'].get('iter_sampling', 1500),
-        'tune': config['sampling'].get('iter_warmup', 500),
-        'chains': config['sampling'].get('parallel_chains', 4),
+        'draws': config['sampling'].get('iter_sampling'),
+        'tune': config['sampling'].get('iter_warmup'),
+        'chains': config['sampling'].get('parallel_chains'),
         'return_inferencedata': True,
-        'random_seed': config['sampling'].get('seed', None),
-        'progressbar': config['sampling'].get('show_progress', True),
+        'random_seed': config['sampling'].get('seed'),
+        'progressbar': config['sampling'].get('show_progress'),
         'init': 'adapt_diag',
         'nuts': nuts_kwargs,
     }
@@ -274,9 +274,7 @@ class DataHandler:
             "entry_id": self.model_data.entry_name_code.values + 1,
             "plot_id": self.model_data.plt_id_code.values + 1,
             "DIST": self.calculate_distance_matrix(),
-            "num_ratings_per_entry": self.model_data.groupby("entry_name")
-            .count()["plt_id"]
-            .max(),
+            "num_ratings_per_entry": self.model_data.groupby("entry_name").count()["plt_id"].max(),
             "num_rows": int(plot_data.row.max()),
             "num_cols": int(plot_data.col.max()),
             "plot_row": plot_data.row.astype(int).values,
