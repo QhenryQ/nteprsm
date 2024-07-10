@@ -67,26 +67,25 @@ def run_model(model, config):
         trace = pm.sample(**sample_kwargs)
     return trace
 
-def calculate_probs(theta, beta, tau):
-    # Debugging information
-    print(f"theta shape before reshape: {theta.shape}")
-    print(f"beta shape before reshape: {beta.shape}")
-    print(f"tau shape before reshape: {tau.shape}")
-    
-    # Reshape theta to ensure correct broadcasting
-    theta = theta[:, np.newaxis]  # Shape: (1500, 1)
-    beta = beta[:, np.newaxis] if beta.ndim == 1 else beta[:, np.newaxis, :]  # Ensure correct shape
-    tau = tau[:, np.newaxis, :]  # Shape: (1500, 1, 9)
-    
-    # Debugging information after reshaping
-    print(f"theta shape after reshape: {theta.shape}")
-    print(f"beta shape after reshape: {beta.shape}")
-    print(f"tau shape after reshape: {tau.shape}")
+def extract_samples(trace):
+    """
+    Extract relevant samples from the trace.
+    """
+    entry_samples = trace.posterior['entry'].values
+    plot_effect_samples = trace.posterior['plot_effect'].values
+    beta_samples = trace.posterior['beta'].values
+    tau_samples = trace.posterior['tau'].values
 
-    unsummed = np.concatenate([np.zeros((theta.shape[0], 1)), theta - beta - tau], axis=1)
-    cumsum = np.cumsum(unsummed, axis=1)
-    exp_cumsum = np.exp(cumsum - np.max(cumsum, axis=1, keepdims=True))
-    return exp_cumsum / np.sum(exp_cumsum, axis=1, keepdims=True)
+    return entry_samples, plot_effect_samples, beta_samples, tau_samples
+
+def calculate_probs(theta, beta, tau):
+    """
+    Calculate probabilities for a single set of parameters.
+    """
+    unsummed = np.concatenate([np.zeros(1), theta - beta - tau])
+    cumsum = np.cumsum(unsummed)
+    exp_cumsum = np.exp(cumsum - np.max(cumsum))
+    return exp_cumsum / np.sum(exp_cumsum)
 
 def main(config_file):
     """
@@ -113,21 +112,9 @@ def main(config_file):
     az.to_netcdf(trace, filename=netcdf_filename)
     logger.info(f"Full trace saved to {netcdf_filename}")
 
-    # Extract samples for entry, plot effects, beta, and tau
-    entry_samples = trace.posterior['entry'].values
-    plot_effect_samples = trace.posterior['plot_effect'].values
-    beta_samples = trace.posterior['beta'].values
-    tau_samples = trace.posterior['tau'].values
+    # Extract samples
+    entry_samples, plot_effect_samples, beta_samples, tau_samples = extract_samples(trace)
 
-    # Debugging information for shapes
-    logger.debug(f"entry_samples shape: {entry_samples.shape}")
-    logger.debug(f"plot_effect_samples shape: {plot_effect_samples.shape}")
-    logger.debug(f"data['entry_id'] shape: {data['entry_id'].shape}")
-    logger.debug(f"data['plot_id'] shape: {data['plot_id'].shape}")
-    logger.info(f"Unique entries: {len(np.unique(data['entry_id']))}")
-    logger.info(f"Unique plots: {len(np.unique(data['plot_id']))}")
-
-    # Function to calculate probabilities
     all_probs = []
     for n in range(len(data['entry_id'])):
         entry_index = data['entry_id'][n] - 1
@@ -139,21 +126,17 @@ def main(config_file):
             logger.warning(f"Skipping index out of bounds: entry_index={entry_index}, plot_index={plot_index}")
             continue
 
-        # Extract the correct samples for entry and plot effects
-        entry_sample = entry_samples[:, :, entry_index]  # Shape: (4, 1500)
-        plot_effect_sample = plot_effect_samples[:, :, plot_index]  # Shape: (4, 1500)
-
-        # Ensure both have the same shape before adding
-        theta_samples = entry_sample + plot_effect_sample
-
-        # Extract beta samples for the rater
-        beta_samples_n = beta_samples[:, :, rater_index]
-
         # Calculate probabilities for each sample
-        probs_samples = np.array([calculate_probs(theta, beta, tau) 
-                                  for theta, beta, tau in zip(theta_samples, beta_samples_n, tau_samples)])
+        probs_samples = []
+        for chain in range(entry_samples.shape[0]):
+            for sample in range(entry_samples.shape[1]):
+                theta = entry_samples[chain, sample, entry_index] + plot_effect_samples[chain, sample, plot_index]
+                beta = beta_samples[chain, sample, rater_index]
+                tau = tau_samples[chain, sample]
+                probs = calculate_probs(theta, beta, tau)
+                probs_samples.append(probs)
         
-        all_probs.append(probs_samples.mean(axis=0))
+        all_probs.append(np.mean(probs_samples, axis=0))
 
     all_probs = np.array(all_probs)
     
@@ -167,4 +150,3 @@ if __name__ == "__main__":
     parser.add_argument("config_file", type=str, help=f"Configuration file name located in {CONFIG_DIR}")
     args = parser.parse_args()
     main(args.config_file)
-
