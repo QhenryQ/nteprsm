@@ -5,7 +5,8 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from random import sample
 from typing import Dict, Optional
-
+import pymc as pm
+import pytensor.tensor as pt
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -88,6 +89,41 @@ def setup_logging(log_directory="logs"):
 
     return logger
 
+
+def rsm(theta, beta, tau):
+    """
+    Custom function to calculate probabilities based on theta, beta, and tau.
+    """
+    theta_minus_beta = theta - beta
+    unsummed = pt.concatenate([pt.zeros((theta.shape[0], 1)), theta_minus_beta[:, None] - tau], axis=1)
+    cumsum = pt.cumsum(unsummed, axis=1)
+    exp_cumsum = pt.exp(cumsum - pt.max(cumsum, axis=1, keepdims=True))
+    probs = exp_cumsum / pt.sum(exp_cumsum, axis=1, keepdims=True)
+    return probs
+
+def get_nuts_kwargs(config):
+    """
+    Extract NUTS sampler parameters from the configuration.
+    """
+    return {
+        'target_accept': config['sampling'].get('adapt_delta'),
+        'max_treedepth': config['sampling'].get('max_treedepth'),
+    }
+
+def get_sample_kwargs(config, nuts_kwargs):
+    """
+    Extract sampling parameters from the configuration.
+    """
+    return {
+        'draws': config['sampling'].get('iter_sampling'),
+        'tune': config['sampling'].get('iter_warmup'),
+        'chains': config['sampling'].get('parallel_chains'),
+        'return_inferencedata': True,
+        'random_seed': config['sampling'].get('seed'),
+        'progressbar': config['sampling'].get('show_progress'),
+        'init': 'adapt_diag',
+        'nuts': nuts_kwargs,
+    }
 
 def rsm_probability(y, theta, tau):
     """
@@ -213,6 +249,7 @@ class DataHandler:
                 `self.model_data` to use for the Stan model. Defaults to
                 'quality'.
 
+ 
         Raises:
             ValueError: If `self.model_data` is None, indicating that data has
                 not been loaded or processed properly before this method is called.
@@ -237,9 +274,8 @@ class DataHandler:
             "rater_id": self.model_data.rater_code.values + 1,
             "entry_id": self.model_data.entry_name_code.values + 1,
             "plot_id": self.model_data.plt_id_code.values + 1,
-            "num_ratings_per_entry": self.model_data.groupby("entry_name")
-            .count()["plt_id"]
-            .max(),
+            "DIST": self.calculate_distance_matrix(),
+            "num_ratings_per_entry": self.model_data.groupby("entry_name").count()["plt_id"].max(),
             "num_rows": int(plot_data.row.max()),
             "num_cols": int(plot_data.col.max()),
             "plot_row": plot_data.row.astype(int).values,
@@ -250,6 +286,19 @@ class DataHandler:
 
         stan_data.update(kwargs)
         self.stan_data = stan_data
+
+    def calculate_distance_matrix(self):
+        if 'row' not in self.model_data.columns or 'col' not in self.model_data.columns:
+            raise ValueError("Plot coordinates ('row' and 'col') must be present in the data.")
+
+        plot_data = self.model_data[['plt_id_code', 'row', 'col']].drop_duplicates()
+        plot_coordinates = plot_data[['row', 'col']].values
+        
+        # Calculate pairwise Euclidean distances
+        from scipy.spatial.distance import pdist, squareform
+        distance_matrix = squareform(pdist(plot_coordinates))
+
+        return distance_matrix
 
     def get_stan_data(self) -> Dict:
         """
