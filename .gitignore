@@ -1,7 +1,14 @@
 .DS_Store
 /data/model_output
 /reports/manuscript1
+*.csv
+*.txt
+*.jpeg
+*.png
+*.html
 /iframe_figures
+# vs code files 
+.vscode/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

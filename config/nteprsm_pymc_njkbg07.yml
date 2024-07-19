@@ -1,0 +1,18 @@
+data_path: "data/raw/quality_nj2.csv"
+additional_data:  # Renamed from stan_additional_data
+  M_f: 8
+  pred_N: 100
+  padding: 5
+sampling: 
+  parallel_chains: 4
+  seed: 1
+  show_progress: True 
+  adapt_delta: 0.99
+  max_treedepth: 15
+  refresh: 20
+  iter_warmup: 500
+  iter_sampling: 1500
+  save_warmup: 1
+  output_dir: 'data/model_output' 
+  time_fmt: '%Y%m%d'
+  show_console: True
