@@ -32,7 +32,6 @@ def create_pymc_model(data):
         tau_free = pm.Normal("tau_free", mu=0, sigma=2, shape=data['num_categories']-1)
         sigma = pm.HalfStudentT("sigma", nu=3, sigma=1)
         entry = pm.Normal("entry", mu=0, sigma=sigma, shape=data['num_entries'])
-        eta = pm.Normal("eta", mu=0, sigma=1, shape=data['num_plots'])
         sigma_e = pm.HalfStudentT("sigma_e", nu=3, sigma=1)
         alpha = pm.HalfStudentT("alpha", nu=3, sigma=1)
         length_scale = pm.Gamma("length_scale", alpha=5, beta=5)
@@ -140,10 +139,6 @@ def main(config_file):
         all_probs.append(np.mean(probs_samples, axis=0))
 
     all_probs = np.array(all_probs)
-
-    # Log average probability distributions for all observations
-    logger.info("Average probability distributions for all observations:")
-    logger.info(all_probs.mean(axis=0))
 
 if __name__ == "__main__":
     import argparse

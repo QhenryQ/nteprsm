@@ -260,7 +260,7 @@ class DataHandler:
                 Please load and preprocess data before generating Stan data."
             )
 
-        self.logger.info("Generating data dictionary for Stan...")
+        self.logger.info("Generating data dictionary for the model...")
         if plot_data is None:
             plot_data = self.model_data.groupby("plt_id_code")[["row", "col"]].mean()
 
