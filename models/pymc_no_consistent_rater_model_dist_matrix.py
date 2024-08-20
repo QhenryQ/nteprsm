@@ -44,10 +44,10 @@ def load_and_preprocess_data(config_file):
 
     # Add temperature data to stan_data
     datahandler.stan_data['temperature'] = datahandler.model_data['TEMPERATURE'].values
-    
-    # Calculate date distances in days
+
+    # Calculate date distances matrix
     date_values = datahandler.model_data['date'].values
-    date_distances = np.abs((date_values[:, None] - date_values[None, :]) / np.timedelta64(1, 'D'))
+    date_distances = np.abs(date_values[:, None] - date_values[None, :]) / np.timedelta64(1, 'D')
     datahandler.stan_data['date_distances'] = date_distances
 
     return datahandler.stan_data, config
@@ -60,10 +60,15 @@ def growth_potential(temp, is_cool_season=True):
     var = 5.5 if is_cool_season else 7
     return np.exp(-0.5 * ((temp - t_opt) / var) ** 2)
 
+def get_icm(input_dim, kernel, W=None, kappa=None, B=None, active_dims=None):
+    """
+    Generate an ICM (Intrinsic Coregionalization Model) kernel.
+    """
+    coreg = pm.gp.cov.Coregion(input_dim=input_dim, W=W, kappa=kappa, B=B, active_dims=active_dims)
+    icm_cov = kernel * coreg  # Use Hadamard Product for separate inputs
+    return icm_cov
+
 def create_pymc_model(data):
-    """
-    Create a PyMC model based on the preprocessed data, including temperature effects.
-    """
     with pm.Model() as model:
         # Define priors
         beta_free = pm.Normal("beta_free", mu=0, sigma=2, shape=data['num_raters']-1)
@@ -72,8 +77,6 @@ def create_pymc_model(data):
         alpha_plot = pm.HalfStudentT("alpha_plot", nu=3, sigma=1)
         length_scale_plot = pm.Gamma("length_scale_plot", alpha=5, beta=5)
         sigma_e_temp = pm.HalfStudentT("sigma_e_temp", nu=3, sigma=1)
-        alpha_temp = pm.HalfStudentT("alpha_temp", nu=3, sigma=1)
-        length_scale_temp = pm.Gamma("length_scale_temp", alpha=5, beta=5)
 
         # Transform parameters
         beta = pm.Deterministic("beta", pt.concatenate([beta_free, -pt.sum(beta_free, keepdims=True)]))
@@ -83,23 +86,29 @@ def create_pymc_model(data):
         DIST = pt.as_tensor_variable(data['DIST'])
         cov_plot = alpha_plot**2 * pt.exp(-0.5 * (DIST * length_scale_plot)**2) + pt.eye(data['num_plots']) * sigma_e_plot**2
         plot_effect = pm.MvNormal("plot_effect", mu=0, cov=cov_plot, shape=data['num_plots'])
-
-        # Calculate growth potential (GP)
+        # Calculate growth potential (GP) based on temperature
         temp_mean = growth_potential(data['temperature'])
-        
-        # Define Gaussian Process for temperature effects using date distance
+        # Set up ICM for temperature effects using date distances
         date_distances = pt.as_tensor_variable(data['date_distances'])
-        
-        cov_temp = alpha_temp**2 * pt.exp(-0.5 * (date_distances / length_scale_temp)**2) + pt.eye(date_distances.shape[0]) * sigma_e_temp**2
-        
-        temp_effects = pm.MvNormal("temp_effects", mu=temp_mean, cov=cov_temp, shape=date_distances.shape[0])
 
+        ell = pm.Gamma("ell", alpha=2, beta=0.5)
+        eta = pm.Gamma("eta", alpha=3, beta=1)
+        kernel = eta**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=ell, active_dims=[0])
+        
+        n_outputs = date_distances.shape[0]  # Number of date entries
+        W = pm.Normal("W", mu=0, sigma=3, shape=(n_outputs, 1))
+        kappa = pm.Gamma("kappa", alpha=1.5, beta=1, shape=n_outputs)
+        B = pm.Deterministic("B", pt.dot(W, W.T) + pt.diag(kappa))
+        cov_icm = get_icm(input_dim=1, kernel=kernel, B=B, active_dims=[0])
+
+        # Define Multi-output GP for temperature effects
+        temp_effects = pm.gp.Marginal(cov_func=cov_icm)
+        temp_effect = temp_effects.marginal_likelihood("temp_effect", X=date_distances, y=None, sigma=sigma_e_temp)
         # Adjusted turf quality
-        theta = pm.Deterministic("theta", plot_effect[data['plot_id']-1] + temp_effects[data['entry_id']-1])
+        theta = pm.Deterministic("theta", plot_effect[data['plot_id']-1] + temp_effect[data['entry_id']-1])
         # Likelihood
         probs = utils.rsm(theta, beta[data['rater_id']-1], tau)
         y = pm.Categorical("y", p=probs, observed=data['y'])
-
     return model
 
 def run_model(model, config):
@@ -121,7 +130,7 @@ def extract_samples(trace):
     plot_effect_samples = trace.posterior['plot_effect'].values
     beta_samples = trace.posterior['beta'].values
     tau_samples = trace.posterior['tau'].values
-    temp_effect_samples = trace.posterior['temp_effects'].values
+    temp_effect_samples = trace.posterior['temp_effect'].values
 
     return plot_effect_samples, beta_samples, tau_samples, temp_effect_samples
 
@@ -178,7 +187,7 @@ def main(config_file):
         for chain in range(plot_effect_samples.shape[0]):
             for sample in range(plot_effect_samples.shape[1]):
                 theta = (plot_effect_samples[chain, sample, plot_index] + 
-                         temp_effect_samples[chain, sample, entry_index, plot_index])
+                         temp_effect_samples[chain, sample, entry_index])
                 beta = beta_samples[chain, sample, rater_index]
                 tau = tau_samples[chain, sample]
                 probs = calculate_probs(theta, beta, tau)
