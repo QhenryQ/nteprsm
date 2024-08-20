@@ -24,7 +24,7 @@ def load_and_preprocess_data(config_file):
     temp_data = pd.read_csv(config["temperature_path"], sep=';')
     temp_data['DATE'] = pd.to_datetime(temp_data['DATE'])
 
-    # Ensure the date column in the main data is in the correct format
+    # Ensure the date column in the main data is in datetime format
     datahandler.model_data['date'] = pd.to_datetime(datahandler.model_data['date'])
 
     # Merge temperature data with main data
@@ -44,7 +44,11 @@ def load_and_preprocess_data(config_file):
 
     # Add temperature data to stan_data
     datahandler.stan_data['temperature'] = datahandler.model_data['TEMPERATURE'].values
-    datahandler.stan_data['dates'] = (datahandler.model_data['date'] - datahandler.model_data['date'].min()).dt.days.values
+    
+    # Calculate date distances in days
+    date_values = datahandler.model_data['date'].values
+    date_distances = np.abs((date_values[:, None] - date_values[None, :]) / np.timedelta64(1, 'D'))
+    datahandler.stan_data['date_distances'] = date_distances
 
     return datahandler.stan_data, config
 
@@ -84,16 +88,14 @@ def create_pymc_model(data):
         temp_mean = growth_potential(data['temperature'])
         
         # Define Gaussian Process for temperature effects using date distance
-        dates = pt.as_tensor_variable(data['dates'])
-        num_dates = dates.shape[0]
-        date_distances = pt.abs(dates[:, None] - dates[None, :])
-        cov_temp = alpha_temp**2 * pt.exp(-0.5 * (date_distances / length_scale_temp)**2) + pt.eye(num_dates) * sigma_e_temp**2
+        date_distances = pt.as_tensor_variable(data['date_distances'])
         
-        temp_effects = pm.MvNormal("temp_effects", mu=temp_mean, cov=cov_temp, shape=(data['num_entries'], data['num_ratings_per_entry']))
+        cov_temp = alpha_temp**2 * pt.exp(-0.5 * (date_distances / length_scale_temp)**2) + pt.eye(date_distances.shape[0]) * sigma_e_temp**2
+        
+        temp_effects = pm.MvNormal("temp_effects", mu=temp_mean, cov=cov_temp, shape=date_distances.shape[0])
 
         # Adjusted turf quality
-        theta = pm.Deterministic("theta", plot_effect[data['plot_id']-1] + temp_effects[data['entry_id']-1, data['plot_id']-1])
-
+        theta = pm.Deterministic("theta", plot_effect[data['plot_id']-1] + temp_effects[data['entry_id']-1])
         # Likelihood
         probs = utils.rsm(theta, beta[data['rater_id']-1], tau)
         y = pm.Categorical("y", p=probs, observed=data['y'])
