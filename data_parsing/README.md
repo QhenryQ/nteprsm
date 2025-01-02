@@ -40,6 +40,12 @@ The processed data is saved to `output7.xlsx`. This output includes:
 
 Due to inconsistencies in blank columns within the provided report format, some columns may require manual input or verification after the initial processing. It is essential to review the output data for any discrepancies or required adjustments.
 
+## Inconsistency
+
+1. Extra columns not matched
+2. 2019 and 2020 provided columns and rows but no data about this was provided years onwards
+3. Dry down quality were placed on different columns
+
 ## Requirements
 
 - Python 3.x
