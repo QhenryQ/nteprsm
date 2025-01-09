@@ -31,7 +31,7 @@ The following parameters are extracted and included in the output:
 
 ## Output
 
-The processed data is saved to `output7.xlsx`. This output includes:
+The processed data is saved to `{Year}parsed_data.xlsx`. This output includes:
 
 - The original data with added columns for the extracted parameters.
 - A new `Entry Code` column created from the concatenation of `number1`, `number2`, and `number3`.
@@ -61,7 +61,7 @@ pip install pandas openpyxl
 
 1. Place the report in the same directory as the script.
 2. Run the script using Python.
-3. Check the generated `output7.xlsx` for the processed data.
+3. Check the generated `{Year}parsed_data.xlsx` for the processed data.
 
 ## Conclusion
 

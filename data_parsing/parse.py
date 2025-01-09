@@ -1,6 +1,13 @@
 import pandas as pd
+import json
+from collections import deque
 
-# Define the column names with lowercase and underscores
+# Load the JSON file and convert lists back to deques
+with open('entity_data.json', 'r') as file:
+    loaded_data = json.load(file)
+    entity_data = {key: deque(value) for key, value in loaded_data.items()}
+
+# Define the column names
 columns = [
     'entity_name', 'number1', 'number2', 'number3', 'replications', 'genetic_color', 
     'greenup', 'leaf_texture', 'traffic_designation', 'wear_tolerance', 'seedling_vigor', 
@@ -20,9 +27,9 @@ columns = [
     'september_fall_color_retention', 'october_fall_color_retention', 'november_fall_color_retention', 
     'december_fall_color_retention', 'seedheads', 'poa_annua_invasion', 'mowing_quality_steminess',
 ]
-file_path = './data/2023submission.xlsx'
 
-# Load the data with openpyxl
+# Load the data from Excel
+file_path = './2019zoysiatrial/2019zoysiatrial/2019 Zoysia NTEP Data_Dallas Data_2019 submission.xlsx'
 df = pd.read_excel(file_path, skiprows=5, usecols=range(0, 73), engine='openpyxl')  # Columns A to BU (0 to 72)
 df.columns = columns  # Assign column names
 
@@ -50,8 +57,25 @@ df['plt_id'] = ""
 df['comp'] = ""
 df['rater'] = ""
 
-# Display the first few rows of the DataFrame
-print(df.head())
+# Iterate through the DataFrame and match with the queue
+for index, row in df.iterrows():
+    # Get the entity_name
+    entity_name = row['entity_name']
+ 
+    # Check if the entity_name exists in the entity_data dictionary
+    if entity_name in entity_data and len(entity_data[entity_name]) > 0:
+        # Dequeue one object from the corresponding queue
+        dequeued_item = entity_data[entity_name].popleft()
+        print(dequeued_item)
+        
+        # Assign values directly to the DataFrame
+        df.at[index, 'row'] = dequeued_item['row']
+        df.at[index, 'column'] = dequeued_item['column']
 
+# Display the first few rows of the modified DataFrame
+print(df[['row', 'column']].head())
+df['row'] = df['row'].astype(str).str.zfill(2)
+df['column'] = df['column'].astype(str).str.zfill(2)
+df['plt_id'] = df['row'] + df['column']
 # Save the modified DataFrame to Excel
-df.to_excel('2023parsed_data.xlsx', index=False)
+df.to_excel('2019parsed_data.xlsx', index=False)

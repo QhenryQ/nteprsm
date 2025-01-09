@@ -1,0 +1,548 @@
+{
+    "15-TZ-11715": [
+        {
+            "row": 4,
+            "column": 1
+        },
+        {
+            "row": 5,
+            "column": 10
+        },
+        {
+            "row": 11,
+            "column": 7
+        }
+    ],
+    "16-TZ-12783": [
+        {
+            "row": 2,
+            "column": 10
+        },
+        {
+            "row": 5,
+            "column": 4
+        },
+        {
+            "row": 11,
+            "column": 8
+        }
+    ],
+    "16-TZ-13463": [
+        {
+            "row": 2,
+            "column": 8
+        },
+        {
+            "row": 5,
+            "column": 5
+        },
+        {
+            "row": 8,
+            "column": 11
+        }
+    ],
+    "DALZ 1311": [
+        {
+            "row": 2,
+            "column": 6
+        },
+        {
+            "row": 4,
+            "column": 9
+        },
+        {
+            "row": 9,
+            "column": 1
+        }
+    ],
+    "DALZ 1408": [
+        {
+            "row": 4,
+            "column": 3
+        },
+        {
+            "row": 5,
+            "column": 3
+        },
+        {
+            "row": 8,
+            "column": 7
+        }
+    ],
+    "DALZ 1409": [
+        {
+            "row": 3,
+            "column": 1
+        },
+        {
+            "row": 7,
+            "column": 9
+        },
+        {
+            "row": 9,
+            "column": 4
+        }
+    ],
+    "DALZ 1601": [
+        {
+            "row": 2,
+            "column": 7
+        },
+        {
+            "row": 6,
+            "column": 2
+        },
+        {
+            "row": 10,
+            "column": 5
+        }
+    ],
+    "DALZ 1603": [
+        {
+            "row": 4,
+            "column": 7
+        },
+        {
+            "row": 5,
+            "column": 8
+        },
+        {
+            "row": 10,
+            "column": 11
+        }
+    ],
+    "DALZ 1613": [
+        {
+            "row": 3,
+            "column": 6
+        },
+        {
+            "row": 5,
+            "column": 9
+        },
+        {
+            "row": 10,
+            "column": 7
+        }
+    ],
+    "DALZ 1614": [
+        {
+            "row": 1,
+            "column": 3
+        },
+        {
+            "row": 4,
+            "column": 8
+        },
+        {
+            "row": 9,
+            "column": 9
+        }
+    ],
+    "DALZ 1701": [
+        {
+            "row": 1,
+            "column": 6
+        },
+        {
+            "row": 5,
+            "column": 2
+        },
+        {
+            "row": 10,
+            "column": 3
+        }
+    ],
+    "DALZ 1707": [
+        {
+            "row": 3,
+            "column": 7
+        },
+        {
+            "row": 6,
+            "column": 9
+        },
+        {
+            "row": 10,
+            "column": 1
+        }
+    ],
+    "DALZ 1713": [
+        {
+            "row": 1,
+            "column": 9
+        },
+        {
+            "row": 7,
+            "column": 4
+        },
+        {
+            "row": 9,
+            "column": 6
+        }
+    ],
+    "DALZ 1714": [
+        {
+            "row": 3,
+            "column": 9
+        },
+        {
+            "row": 6,
+            "column": 6
+        },
+        {
+            "row": 11,
+            "column": 2
+        }
+    ],
+    "DALZ 1802": [
+        {
+            "row": 2,
+            "column": 2
+        },
+        {
+            "row": 8,
+            "column": 2
+        },
+        {
+            "row": 11,
+            "column": 4
+        }
+    ],
+    "DALZ 1806": [
+        {
+            "row": 3,
+            "column": 2
+        },
+        {
+            "row": 8,
+            "column": 1
+        },
+        {
+            "row": 9,
+            "column": 7
+        }
+    ],
+    "DALZ 1807": [
+        {
+            "row": 1,
+            "column": 8
+        },
+        {
+            "row": 5,
+            "column": 7
+        },
+        {
+            "row": 10,
+            "column": 8
+        }
+    ],
+    "DALZ 1808": [
+        {
+            "row": 2,
+            "column": 9
+        },
+        {
+            "row": 7,
+            "column": 5
+        },
+        {
+            "row": 11,
+            "column": 10
+        }
+    ],
+    "Emerald": [
+        {
+            "row": 2,
+            "column": 4
+        },
+        {
+            "row": 7,
+            "column": 10
+        },
+        {
+            "row": 11,
+            "column": 1
+        }
+    ],
+    "Empire": [
+        {
+            "row": 1,
+            "column": 5
+        },
+        {
+            "row": 7,
+            "column": 3
+        },
+        {
+            "row": 9,
+            "column": 3
+        }
+    ],
+    "FAES 1319": [
+        {
+            "row": 4,
+            "column": 2
+        },
+        {
+            "row": 6,
+            "column": 11
+        },
+        {
+            "row": 10,
+            "column": 4
+        }
+    ],
+    "FAES 1335": [
+        {
+            "row": 2,
+            "column": 3
+        },
+        {
+            "row": 7,
+            "column": 1
+        },
+        {
+            "row": 11,
+            "column": 3
+        }
+    ],
+    "FZ 1327": [
+        {
+            "row": 3,
+            "column": 11
+        },
+        {
+            "row": 7,
+            "column": 11
+        },
+        {
+            "row": 10,
+            "column": 2
+        }
+    ],
+    "FZ 1367": [
+        {
+            "row": 4,
+            "column": 4
+        },
+        {
+            "row": 5,
+            "column": 11
+        },
+        {
+            "row": 11,
+            "column": 5
+        }
+    ],
+    "FZ 1368": [
+        {
+            "row": 1,
+            "column": 2
+        },
+        {
+            "row": 7,
+            "column": 6
+        },
+        {
+            "row": 8,
+            "column": 5
+        }
+    ],
+    "FZ 1407": [
+        {
+            "row": 2,
+            "column": 1
+        },
+        {
+            "row": 6,
+            "column": 10
+        },
+        {
+            "row": 8,
+            "column": 9
+        }
+    ],
+    "FZ 1410": [
+        {
+            "row": 3,
+            "column": 3
+        },
+        {
+            "row": 6,
+            "column": 7
+        },
+        {
+            "row": 9,
+            "column": 11
+        }
+    ],
+    "FZ 1422": [
+        {
+            "row": 2,
+            "column": 5
+        },
+        {
+            "row": 4,
+            "column": 11
+        },
+        {
+            "row": 8,
+            "column": 4
+        }
+    ],
+    "FZ 1436": [
+        {
+            "row": 3,
+            "column": 4
+        },
+        {
+            "row": 4,
+            "column": 10
+        },
+        {
+            "row": 9,
+            "column": 2
+        }
+    ],
+    "FZ 1440": [
+        {
+            "row": 4,
+            "column": 5
+        },
+        {
+            "row": 6,
+            "column": 1
+        },
+        {
+            "row": 9,
+            "column": 10
+        }
+    ],
+    "FZ 1721": [
+        {
+            "row": 1,
+            "column": 7
+        },
+        {
+            "row": 6,
+            "column": 8
+        },
+        {
+            "row": 10,
+            "column": 6
+        }
+    ],
+    "FZ 1722": [
+        {
+            "row": 1,
+            "column": 1
+        },
+        {
+            "row": 7,
+            "column": 7
+        },
+        {
+            "row": 8,
+            "column": 10
+        }
+    ],
+    "FZ 1723": [
+        {
+            "row": 4,
+            "column": 6
+        },
+        {
+            "row": 6,
+            "column": 5
+        },
+        {
+            "row": 8,
+            "column": 8
+        }
+    ],
+    "FZ 1727": [
+        {
+            "row": 2,
+            "column": 11
+        },
+        {
+            "row": 7,
+            "column": 8
+        },
+        {
+            "row": 11,
+            "column": 6
+        }
+    ],
+    "FZ 1728": [
+        {
+            "row": 3,
+            "column": 5
+        },
+        {
+            "row": 6,
+            "column": 4
+        },
+        {
+            "row": 9,
+            "column": 5
+        }
+    ],
+    "FZ 1732": [
+        {
+            "row": 1,
+            "column": 10
+        },
+        {
+            "row": 5,
+            "column": 6
+        },
+        {
+            "row": 10,
+            "column": 10
+        }
+    ],
+    "Meyer": [
+        {
+            "row": 1,
+            "column": 11
+        },
+        {
+            "row": 6,
+            "column": 3
+        },
+        {
+            "row": 9,
+            "column": 8
+        }
+    ],
+    "UGA GZ 17-4": [
+        {
+            "row": 1,
+            "column": 4
+        },
+        {
+            "row": 7,
+            "column": 2
+        },
+        {
+            "row": 8,
+            "column": 6
+        }
+    ],
+    "Zeon": [
+        {
+            "row": 3,
+            "column": 8
+        },
+        {
+            "row": 5,
+            "column": 1
+        },
+        {
+            "row": 11,
+            "column": 9
+        }
+    ]
+}
