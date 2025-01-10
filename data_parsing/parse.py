@@ -29,7 +29,7 @@ columns = [
 ]
 
 # Load the data from Excel
-file_path = './2019zoysiatrial/2019zoysiatrial/2019 Zoysia NTEP Data_Dallas Data_2019 submission.xlsx'
+file_path = './data/2019zoysiatrial/2019 Zoysia NTEP Data_Dallas Data_2021 submission.xlsx'
 df = pd.read_excel(file_path, skiprows=5, usecols=range(0, 73), engine='openpyxl')  # Columns A to BU (0 to 72)
 df.columns = columns  # Assign column names
 
@@ -78,4 +78,4 @@ df['row'] = df['row'].astype(str).str.zfill(2)
 df['column'] = df['column'].astype(str).str.zfill(2)
 df['plt_id'] = df['row'] + df['column']
 # Save the modified DataFrame to Excel
-df.to_excel('2019parsed_data.xlsx', index=False)
+df.to_csv('2021parsed_data11.csv', index=False)

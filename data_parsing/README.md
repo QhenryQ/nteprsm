@@ -13,9 +13,9 @@ This Python program processes agricultural data from the NTEP Report and outputs
 
 ## Data Format
 
-The program expects the input Excel file (`test2.xlsx`) to have the following structure:
+The program expects the input Excel file to have the following structure:
 
-- The relevant data starts from the 6th row (indexed as 5).
+- The relevant data starts from the 7th row.
 - It reads columns A to BU (0 to 72) and assigns predefined column names to the DataFrame.
 - The program also reads specific values from cells `BE1`, `BD1`, `BP1`, and `CA1` for additional parameters.
 
@@ -35,6 +35,7 @@ The processed data is saved to `{Year}parsed_data.xlsx`. This output includes:
 
 - The original data with added columns for the extracted parameters.
 - A new `Entry Code` column created from the concatenation of `number1`, `number2`, and `number3`.
+- Using entity_data.json, create `row` and `column` for the entry and assign `plt_id` as their concatenation. 
 
 ## Manual Input Note
 
@@ -44,7 +45,7 @@ Due to inconsistencies in blank columns within the provided report format, some 
 
 1. Extra columns not matched
 2. 2019 and 2020 provided columns and rows but no data about this was provided years onwards
-3. Dry down quality were placed on different columns
+3. Drought quality were placed on different columns
 
 ## Requirements
 
