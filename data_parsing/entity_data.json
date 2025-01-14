@@ -2,547 +2,664 @@
     "15-TZ-11715": [
         {
             "row": 4,
-            "column": 1
+            "column": 1,
+            "plt_id": 31
         },
         {
             "row": 5,
-            "column": 10
+            "column": 10,
+            "plt_id": 32
         },
         {
             "row": 11,
-            "column": 7
+            "column": 7,
+            "plt_id": 33
         }
     ],
     "16-TZ-12783": [
         {
             "row": 2,
-            "column": 10
+            "column": 10,
+            "plt_id": 34
         },
         {
             "row": 5,
-            "column": 4
+            "column": 4,
+            "plt_id": 35
         },
         {
             "row": 11,
-            "column": 8
+            "column": 8,
+            "plt_id": 36
         }
     ],
     "16-TZ-13463": [
         {
             "row": 2,
-            "column": 8
+            "column": 8,
+            "plt_id": 37
         },
         {
             "row": 5,
-            "column": 5
+            "column": 5,
+            "plt_id": 38
         },
         {
             "row": 8,
-            "column": 11
+            "column": 11,
+            "plt_id": 39
         }
     ],
     "DALZ 1311": [
         {
             "row": 2,
-            "column": 6
+            "column": 6,
+            "plt_id": 64
         },
         {
             "row": 4,
-            "column": 9
+            "column": 9,
+            "plt_id": 65
         },
         {
             "row": 9,
-            "column": 1
+            "column": 1,
+            "plt_id": 66
         }
     ],
     "DALZ 1408": [
         {
             "row": 4,
-            "column": 3
+            "column": 3,
+            "plt_id": 67
         },
         {
             "row": 5,
-            "column": 3
+            "column": 3,
+            "plt_id": 68
         },
         {
             "row": 8,
-            "column": 7
+            "column": 7,
+            "plt_id": 69
         }
     ],
     "DALZ 1409": [
         {
             "row": 3,
-            "column": 1
+            "column": 1,
+            "plt_id": 70
         },
         {
             "row": 7,
-            "column": 9
+            "column": 9,
+            "plt_id": 71
         },
         {
             "row": 9,
-            "column": 4
+            "column": 4,
+            "plt_id": 72
         }
     ],
     "DALZ 1601": [
         {
             "row": 2,
-            "column": 7
+            "column": 7,
+            "plt_id": 73
         },
         {
             "row": 6,
-            "column": 2
+            "column": 2,
+            "plt_id": 74
         },
         {
             "row": 10,
-            "column": 5
+            "column": 5,
+            "plt_id": 75
         }
     ],
     "DALZ 1603": [
         {
             "row": 4,
-            "column": 7
+            "column": 7,
+            "plt_id": 76
         },
         {
             "row": 5,
-            "column": 8
+            "column": 8,
+            "plt_id": 77
         },
         {
             "row": 10,
-            "column": 11
+            "column": 11,
+            "plt_id": 78
         }
     ],
     "DALZ 1613": [
         {
             "row": 3,
-            "column": 6
+            "column": 6,
+            "plt_id": 79
         },
         {
             "row": 5,
-            "column": 9
+            "column": 9,
+            "plt_id": 80
         },
         {
             "row": 10,
-            "column": 7
+            "column": 7,
+            "plt_id": 81
         }
     ],
     "DALZ 1614": [
         {
             "row": 1,
-            "column": 3
+            "column": 3,
+            "plt_id": 82
         },
         {
             "row": 4,
-            "column": 8
+            "column": 8,
+            "plt_id": 83
         },
         {
             "row": 9,
-            "column": 9
+            "column": 9,
+            "plt_id": 84
         }
     ],
     "DALZ 1701": [
         {
             "row": 1,
-            "column": 6
+            "column": 6,
+            "plt_id": 85
         },
         {
             "row": 5,
-            "column": 2
+            "column": 2,
+            "plt_id": 86
         },
         {
             "row": 10,
-            "column": 3
+            "column": 3,
+            "plt_id": 87
         }
     ],
     "DALZ 1707": [
         {
             "row": 3,
-            "column": 7
+            "column": 7,
+            "plt_id": 88
         },
         {
             "row": 6,
-            "column": 9
+            "column": 9,
+            "plt_id": 89
         },
         {
             "row": 10,
-            "column": 1
+            "column": 1,
+            "plt_id": 90
         }
     ],
     "DALZ 1713": [
         {
             "row": 1,
-            "column": 9
+            "column": 9,
+            "plt_id": 46
         },
         {
             "row": 7,
-            "column": 4
+            "column": 4,
+            "plt_id": 47
         },
         {
             "row": 9,
-            "column": 6
+            "column": 6,
+            "plt_id": 48
         }
     ],
     "DALZ 1714": [
         {
             "row": 3,
-            "column": 9
+            "column": 9,
+            "plt_id": 49
         },
         {
             "row": 6,
-            "column": 6
+            "column": 6,
+            "plt_id": 50
         },
         {
             "row": 11,
-            "column": 2
+            "column": 2,
+            "plt_id": 51
         }
     ],
     "DALZ 1802": [
         {
             "row": 2,
-            "column": 2
+            "column": 2,
+            "plt_id": 52
         },
         {
             "row": 8,
-            "column": 2
+            "column": 2,
+            "plt_id": 53
         },
         {
             "row": 11,
-            "column": 4
+            "column": 4,
+            "plt_id": 54
         }
     ],
     "DALZ 1806": [
         {
             "row": 3,
-            "column": 2
+            "column": 2,
+            "plt_id": 55
         },
         {
             "row": 8,
-            "column": 1
+            "column": 1,
+            "plt_id": 56
         },
         {
             "row": 9,
-            "column": 7
+            "column": 7,
+            "plt_id": 57
         }
     ],
     "DALZ 1807": [
         {
             "row": 1,
-            "column": 8
+            "column": 8,
+            "plt_id": 58
         },
         {
             "row": 5,
-            "column": 7
+            "column": 7,
+            "plt_id": 59
         },
         {
             "row": 10,
-            "column": 8
+            "column": 8,
+            "plt_id": 60
         }
     ],
     "DALZ 1808": [
         {
             "row": 2,
-            "column": 9
+            "column": 9,
+            "plt_id": 61
         },
         {
             "row": 7,
-            "column": 5
+            "column": 5,
+            "plt_id": 62
         },
         {
             "row": 11,
-            "column": 10
+            "column": 10,
+            "plt_id": 63
         }
     ],
     "Emerald": [
         {
             "row": 2,
-            "column": 4
+            "column": 4,
+            "plt_id": 4
         },
         {
             "row": 7,
-            "column": 10
+            "column": 10,
+            "plt_id": 5
         },
         {
             "row": 11,
-            "column": 1
+            "column": 1,
+            "plt_id": 6
         }
     ],
     "Empire": [
         {
             "row": 1,
-            "column": 5
+            "column": 5,
+            "plt_id": 43
         },
         {
             "row": 7,
-            "column": 3
+            "column": 3,
+            "plt_id": 44
         },
         {
             "row": 9,
-            "column": 3
+            "column": 3,
+            "plt_id": 45
         }
     ],
     "FAES 1319": [
         {
             "row": 4,
-            "column": 2
+            "column": 2,
+            "plt_id": 91
         },
         {
             "row": 6,
-            "column": 11
+            "column": 11,
+            "plt_id": 92
         },
         {
             "row": 10,
-            "column": 4
+            "column": 4,
+            "plt_id": 93
         }
     ],
     "FAES 1335": [
         {
             "row": 2,
-            "column": 3
+            "column": 3,
+            "plt_id": 94
         },
         {
             "row": 7,
-            "column": 1
+            "column": 1,
+            "plt_id": 95
         },
         {
             "row": 11,
-            "column": 3
+            "column": 3,
+            "plt_id": 96
         }
     ],
     "FZ 1327": [
         {
             "row": 3,
-            "column": 11
+            "column": 11,
+            "plt_id": 97
         },
         {
             "row": 7,
-            "column": 11
+            "column": 11,
+            "plt_id": 98
         },
         {
             "row": 10,
-            "column": 2
+            "column": 2,
+            "plt_id": 99
         }
     ],
     "FZ 1367": [
         {
             "row": 4,
-            "column": 4
+            "column": 4,
+            "plt_id": 16
         },
         {
             "row": 5,
-            "column": 11
+            "column": 11,
+            "plt_id": 17
         },
         {
             "row": 11,
-            "column": 5
+            "column": 5,
+            "plt_id": 18
         }
     ],
     "FZ 1368": [
         {
             "row": 1,
-            "column": 2
+            "column": 2,
+            "plt_id": 13
         },
         {
             "row": 7,
-            "column": 6
+            "column": 6,
+            "plt_id": 14
         },
         {
             "row": 8,
-            "column": 5
+            "column": 5,
+            "plt_id": 15
         }
     ],
     "FZ 1407": [
         {
             "row": 2,
-            "column": 1
+            "column": 1,
+            "plt_id": 100
         },
         {
             "row": 6,
-            "column": 10
+            "column": 10,
+            "plt_id": 101
         },
         {
             "row": 8,
-            "column": 9
+            "column": 9,
+            "plt_id": 102
         }
     ],
     "FZ 1410": [
         {
             "row": 3,
-            "column": 3
+            "column": 3,
+            "plt_id": 10
         },
         {
             "row": 6,
-            "column": 7
+            "column": 7,
+            "plt_id": 11
         },
         {
             "row": 9,
-            "column": 11
+            "column": 11,
+            "plt_id": 12
         }
     ],
     "FZ 1422": [
         {
             "row": 2,
-            "column": 5
+            "column": 5,
+            "plt_id": 22
         },
         {
             "row": 4,
-            "column": 11
+            "column": 11,
+            "plt_id": 23
         },
         {
             "row": 8,
-            "column": 4
+            "column": 4,
+            "plt_id": 24
         }
     ],
     "FZ 1436": [
         {
             "row": 3,
-            "column": 4
+            "column": 4,
+            "plt_id": 28
         },
         {
             "row": 4,
-            "column": 10
+            "column": 10,
+            "plt_id": 29
         },
         {
             "row": 9,
-            "column": 2
+            "column": 2,
+            "plt_id": 30
         }
     ],
     "FZ 1440": [
         {
             "row": 4,
-            "column": 5
+            "column": 5,
+            "plt_id": 19
         },
         {
             "row": 6,
-            "column": 1
+            "column": 1,
+            "plt_id": 20
         },
         {
             "row": 9,
-            "column": 10
+            "column": 10,
+            "plt_id": 21
         }
     ],
     "FZ 1721": [
         {
             "row": 1,
-            "column": 7
+            "column": 7,
+            "plt_id": 103
         },
         {
             "row": 6,
-            "column": 8
+            "column": 8,
+            "plt_id": 104
         },
         {
             "row": 10,
-            "column": 6
+            "column": 6,
+            "plt_id": 105
         }
     ],
     "FZ 1722": [
         {
             "row": 1,
-            "column": 1
+            "column": 1,
+            "plt_id": 106
         },
         {
             "row": 7,
-            "column": 7
+            "column": 7,
+            "plt_id": 107
         },
         {
             "row": 8,
-            "column": 10
+            "column": 10,
+            "plt_id": 108
         }
     ],
     "FZ 1723": [
         {
             "row": 4,
-            "column": 6
+            "column": 6,
+            "plt_id": 109
         },
         {
             "row": 6,
-            "column": 5
+            "column": 5,
+            "plt_id": 110
         },
         {
             "row": 8,
-            "column": 8
+            "column": 8,
+            "plt_id": 111
         }
     ],
     "FZ 1727": [
         {
             "row": 2,
-            "column": 11
+            "column": 11,
+            "plt_id": 25
         },
         {
             "row": 7,
-            "column": 8
+            "column": 8,
+            "plt_id": 26
         },
         {
             "row": 11,
-            "column": 6
+            "column": 6,
+            "plt_id": 27
         }
     ],
     "FZ 1728": [
         {
             "row": 3,
-            "column": 5
+            "column": 5,
+            "plt_id": 112
         },
         {
             "row": 6,
-            "column": 4
+            "column": 4,
+            "plt_id": 113
         },
         {
             "row": 9,
-            "column": 5
+            "column": 5,
+            "plt_id": 114
         }
     ],
     "FZ 1732": [
         {
             "row": 1,
-            "column": 10
+            "column": 10,
+            "plt_id": 115
         },
         {
             "row": 5,
-            "column": 6
+            "column": 6,
+            "plt_id": 116
         },
         {
             "row": 10,
-            "column": 10
+            "column": 10,
+            "plt_id": 117
         }
     ],
     "Meyer": [
         {
             "row": 1,
-            "column": 11
+            "column": 11,
+            "plt_id": 1
         },
         {
             "row": 6,
-            "column": 3
+            "column": 3,
+            "plt_id": 2
         },
         {
             "row": 9,
-            "column": 8
+            "column": 8,
+            "plt_id": 3
         }
     ],
     "UGA GZ 17-4": [
         {
             "row": 1,
-            "column": 4
+            "column": 4,
+            "plt_id": 40
         },
         {
             "row": 7,
-            "column": 2
+            "column": 2,
+            "plt_id": 41
         },
         {
             "row": 8,
-            "column": 6
+            "column": 6,
+            "plt_id": 42
         }
     ],
     "Zeon": [
         {
             "row": 3,
-            "column": 8
+            "column": 8,
+            "plt_id": 7
         },
         {
             "row": 5,
-            "column": 1
+            "column": 1,
+            "plt_id": 8
         },
         {
             "row": 11,
-            "column": 9
+            "column": 9,
+            "plt_id": 9
         }
     ]
 }

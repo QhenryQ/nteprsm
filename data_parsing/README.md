@@ -1,71 +1,125 @@
-# README for Data Processing Program
+# README for NTEP Data Processing Program
 
 ## Overview
 
-This Python program processes agricultural data from the NTEP Report and outputs a tabular version of the data to a new Excel file. The program utilizes the `pandas` library for data manipulation and is designed to parse specific data formats as required for analysis.
+This Python program processes agricultural data from the NTEP Report (National Turfgrass Evaluation Program) and outputs a cleaned, tabular version of the data to a new file. The program uses the `pandas` library for data manipulation and automates the assignment of plot IDs (`plt_id`) for each entry using data from `entity_data.json`. It is designed to handle specific data formats for NTEP reports from 2019 to 2023.
 
 ## Features
 
 - Reads and processes data from specified columns in an Excel file.
-- Merges specific columns to create a new `Entry Code`.
-- Extracts specific soil and irrigation parameters to add to the dataset.
-- Saves the cleaned and modified data to a new Excel file.
+- Automatically assigns **row**, **column**, and **plot ID (plt_id)** to each entry using a preloaded queue from `entity_data.json`.
+- Extracts additional parameters (e.g., soil pH, irrigation practice) from specific cells in the Excel file.
+- Combines and formats unique identifiers (`number1`, `number2`, `number3`) into a new **Entry Code**.
+- Outputs the cleaned and modified data to a new CSV file for analysis.
 
 ## Data Format
 
 The program expects the input Excel file to have the following structure:
 
-- The relevant data starts from the 7th row.
-- It reads columns A to BU (0 to 72) and assigns predefined column names to the DataFrame.
-- The program also reads specific values from cells `BE1`, `BD1`, `BP1`, and `CA1` for additional parameters.
-- A format that works will be the report from 2021 to 2023
-- Excel file similar to 2019 and 2020 requires users to edit out the extra row and column, so that cell A1 is `National Turfgrass Evaluation Program`
+- The data begins on **row 7** (first 6 rows are skipped during parsing).
+- Columns **A to BU** (0 to 72) are used, corresponding to predefined parameter names.
+- Specific parameters are extracted from designated cells (e.g., soil pH from `BE3`, irrigation from `CA3`).
+- **Reports from 2021 to 2023** are fully compatible with this program.
+- Reports from **2019 and 2020** require manual editing to remove extra rows or columns so that the top-left cell (`A1`) reads: `National Turfgrass Evaluation Program`.
+
+## File Structure
+
+- `./data/`: Stores the raw NTEP reports (2019–2023), plot plans, and quality rating collection dates.
+- `./parsed_data.zip`: Contains the processed datasets, including all extracted parameters and assigned plot IDs.
+- `entity_data.json`: Stores the mapping of `row`, `column`, and `plot_id` for each entry to ensure consistency in future reports.
+- `parse.py`: The main script for parsing and processing the data.
 
 ## Parameters Extracted
 
-The following parameters are extracted and included in the output:
+The following parameters are extracted and included in the processed output:
 
-- **Soil pH** (from cell `BE3`)
-- **Nitrogen Level** (from cell `BP3`)
-- **Soluble Potassium** (from cell `BP2`)
-- **Soil Phosphorus** (from cell `BP1`)
-- **Irrigation Practiced** (from cell `CA3`)
+- **Genetic Color**
+- **Greenup**
+- **Leaf Texture**
+- **Traffic Designation**
+- **Wear Tolerance**
+- **Seedling Vigor**
+- **Spring Density**
+- **Summer Density**
+- **Fall Density**
+- **Percent Living Ground Cover**:
+  - **Spring Percent Living Ground Cover 1 & 2**
+  - **Summer Percent Living Ground Cover 1 & 2**
+  - **Fall Percent Living Ground Cover 1 & 2**
+- **Frost Tolerance**
+- **Winter Color**
+- **Winter Kill 1 & 2**
+- **Wilting**
+- **Dormancy**
+- **Recovery**
+- **Thatch Measurements 1 & 2**
+- **Disease Ratings**:
+  - Typhula Blight
+  - Microdochium Patch
+  - Spring and Fall Melting Out
+  - Leaf Spot
+  - Stem Rust
+  - Dollar Spot
+  - Red Thread
+  - Brown Patch (Warm Temp)
+  - Summer Patch
+  - Pythium Blight
+  - Stripe Smut
+  - Necrotic Ring Spot
+  - Crown Rust
+  - Powdery Mildew
+  - Anthracnose
+  - Brown Patch (Cool Temp)
+  - Damping Off
+  - Fairy Ring
+  - Gray Leaf Spot
+  - Pink Snow Mold
+  - Pink Patch
+  - Pythium Root Rot
+  - Take All Patch
+- **Insect Damage** (optional manual input)
+- **Fall Color Retention**:
+  - **September, October, November, December**
+- **Seedheads**
+- **Poa Annua Invasion**
+- **Mowing Quality**
+- **Quality ratings**
 
 ## Output
 
-The processed data is saved to `{Year}parsed_data.xlsx`. This output includes:
+The processed data is saved as a CSV file (`{Year}parsed_data.csv`). The output includes:
 
-- The original data with added columns for the extracted parameters.
-- A new `Entry Code` column created from the concatenation of `number1`, `number2`, and `number3`.
-- Using entity_data.json, create `row` and `column` for the entry and assign `plt_id` as their concatenation.
+1. **Entry Code**: A unique identifier created by concatenating `number1`, `number2`, and `number3`.
+2. **Row** and **Column**: Assigned using the preloaded `entity_data.json` queue.
+3. **Plot ID (plt_id)**: Generated by combining `row` and `column` (formatted as two-digit numbers).
+4. All extracted parameters described above.
 
-## Manual Input Note
+### Example Output (Columns)
 
-Due to inconsistencies in blank columns within the provided report format, some columns (such as drought and recovery rating) may require manual input or verification after the initial processing. It is essential to review the output data for any discrepancies or required adjustments.
+| entity_name | entry_code | row | column | plt_id | genetic_color | greenup | ... |
+|-------------|------------|-----|--------|--------|---------------|---------|-----|
+| EntityA     | 001        | 01  | 01     | 1      | 6             | 5       | ... |
+| EntityB     | 002        | 01  | 02     | 2      | 7             | 6       | ... |
 
-## Inconsistency
+## Manual Input Notes
 
-1. Extra columns not matched
-2. 2019 and 2020 provided columns and rows but no data about this was provided years onwards
-3. Drought quality were placed on different columns
+- **Blank Columns**: Certain parameters, such as insect damage and drought data, may have missing or inconsistent values in the source files. These should be reviewed and filled manually after processing.
+- **2019 and 2020 Reports**: Earlier reports require manual adjustments to remove extra rows and columns before running the program.
+
+## Inconsistencies Handled
+
+1. **Extra Columns**: Columns not matching expected headers will be ignored.
+2. **Missing Plot Data**: For 2021, 2022 and 2023, where plot data is missing, `entity_data.json` is used to assign row and column numbers.
+3. **Drought Data**: Drought quality ratings are often located in different columns across years. These are excluded from automated processing.
 
 ## Requirements
 
-- Python 3.x
-- pandas library
+- **Python 3.x**
+- **pandas** and **openpyxl** libraries
 
-You can install the required library using pip:
+To install the required libraries, use `poetry`:
 
 ```bash
-pip install pandas openpyxl
-```
-
-## Usage
-
-1. Place the report in the same directory as the script.
-2. Run the script using Python.
-3. Check the generated `{Year}parsed_data.xlsx` for the processed data.
-
-## Conclusion
-
-This program serves as a useful tool for parsing and processing agricultural data efficiently. However, users should be aware of potential inconsistencies in the data and be prepared to make necessary manual adjustments.
+poetry init
+poetry add pandas openpyxl
+poetry shell
