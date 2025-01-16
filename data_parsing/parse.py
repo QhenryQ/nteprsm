@@ -71,11 +71,11 @@ for index, row in df.iterrows():
         # Assign values directly to the DataFrame
         df.at[index, 'row'] = dequeued_item['row']
         df.at[index, 'column'] = dequeued_item['column']
+        df.at[index, 'plt_id'] = dequeued_item['plt_id']
 
 # Display the first few rows of the modified DataFrame
 print(df[['row', 'column']].head())
 df['row'] = df['row'].astype(str).str.zfill(2)
 df['column'] = df['column'].astype(str).str.zfill(2)
-df['plt_id'] = df['row'] + df['column']
 # Save the modified DataFrame to Excel
-df.to_csv('2021parsed_data11.csv', index=False)
+df.to_csv('2021parsed_data.csv', index=False)
