@@ -1,5 +1,6 @@
-data_path: "data/raw/quality_nj2.csv"
-additional_data:  # Renamed from stan_additional_data
+data_path: "/Users/kametayturar/nteprsm/data/raw/quality_nj2.csv"
+temperature_path: "/Users/kametayturar/nteprsm/data/raw/temperature_nj21.csv" 
+additional_data:
   M_f: 8
   pred_N: 100
   padding: 5
