@@ -5,7 +5,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from random import sample
 from typing import Dict, Optional
-import pymc as pm
 import pytensor.tensor as pt
 import numpy as np
 import pandas as pd
@@ -200,13 +199,14 @@ class DataHandler:
         model_data.columns = [col.lower() for col in model_data.columns]
 
         model_data = model_data.assign(
+            ##TODO: de-duplicate entry_code and entry_name_code. 
             entry_name_code=pd.Categorical(model_data["entry_name"]).codes,
             plt_id_code=pd.Categorical(model_data["plt_id"]).codes,
             rater_code=pd.Categorical(model_data["rater"]).codes,
             rating_event_code=pd.Categorical(model_data["rating_event"]).codes,
             date=pd.to_datetime(model_data["date"]),
         )
-        # adjust day of year for leap year, Feb 19th is the 60th day of the year
+        # adjust day of year for leap year, Feb 29th is the 60th day of the year
         # day_of_year on or past Feb 29th in a leap year will reduced by 1.
         model_data["adj_day_of_year"] = model_data.date.dt.day_of_year - (
             model_data.date.dt.is_leap_year * model_data.date.dt.day_of_year >= 60
@@ -337,8 +337,7 @@ class DataHandler:
 
         if invert:
             # Using dictionary comprehension for inverting the dictionary
-            return {code: name for name, code in name2code.items()}
-
+            return {int(code): name for name, code in name2code.items()}
         return name2code
 
 
@@ -365,15 +364,25 @@ class PosteriorSampleAnalysis:
         self.stanmcmc = stanmcmc
         self.logger = logger if logger is not None else setup_logging(LOG_DIR)
 
-    def get_predicted_statistics(self, func, *arg):
-        """get model predictions as a dataframe, with pred_day as an additional
-        column
+    def get_predicted_statistics(self, func, *args, **kwargs):
+        """
+        Get model predictions as a dataframe, with pred_day as an additional column.
+
+        Args:
+            func (callable): The function to apply to the predictions.
+            *args: Additional positional arguments to pass to the function.
+            **kwargs: Additional keyword arguments to pass to the function.
+
+        Returns:
+            pd.DataFrame: A dataframe containing the model predictions and adj_day_of_year.
         """
         num_preds = self.datahandler.stan_data["pred_N"]
-        pred_day = np.array(range(1, num_preds + 1)) / num_preds * 365
-        data = func(self.stanmcmc.pred_time_effect, axis=0, *arg).T
+        data = func(self.stanmcmc.pred_time_effect, axis=0, *args, **kwargs).T
         pred_data = pd.DataFrame(data)
-        pred_data = pred_data.assign(pred_day=pred_day)
+        pred_data = pred_data.assign(adj_day_of_year=
+                        np.array(range(1, num_preds + 1)) / num_preds * 365)
+        pred_data.set_index("adj_day_of_year", inplace=True)
+        pred_data.columns.name = "entry_name_code"
         return pred_data
 
     def get_predicted_monthly_means(
@@ -394,7 +403,7 @@ class PosteriorSampleAnalysis:
             respective month. We also added a column for entry name.
         """
         pred_means["month"] = pd.cut(
-            pred_means["pred_day"], bins=MONTH_BINS, labels=MONTH_ABBR, right=False
+            pred_means.index, bins=MONTH_BINS, labels=MONTH_ABBR, right=False
         )
         monthly_means = (
             pred_means.groupby("month")[
@@ -483,6 +492,7 @@ class PosteriorSampleAnalysis:
         if ci is not None and 0 < ci < 1:
             y_lbs = self.get_predicted_statistics(np.quantile, 0.5 * (1 - ci))
             y_ubs = self.get_predicted_statistics(np.quantile, 0.5 * (1 + ci))
+            
         # Set up Plotly graph
         fig = go.Figure()
 
@@ -506,7 +516,7 @@ class PosteriorSampleAnalysis:
                 )
             )
             # plot predicted values for the whole year
-            x_pred = means.pred_day.values
+            x_pred = means.index
             y_pred = means[code]
             fig.add_trace(
                 go.Scatter(
