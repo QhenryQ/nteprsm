@@ -76,6 +76,9 @@ Before you begin, ensure you have the following installed on your Mac:
         ```
     - Ensure the environment is active.
 
+9. **Setup data access via pydrive**
+    All data is stored in a shared Google Drive. To request access, please contact henry.yqu at ntep dot com. Use `pydrive`, a Python wrapper for the `google-api-python-client`, to streamline tasks such as querying files by ID. To connect to Google Drive, utilize the `setup_google_drive` function available in the `utils` module.
+
 9. **Run the Model**:
     ```sh
     python nteprsm/model.py config/nteprsm_in1kbg07.yml

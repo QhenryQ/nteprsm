@@ -5,11 +5,12 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from random import sample
 from typing import Dict, Optional
-import pytensor.tensor as pt
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import pytensor.tensor as pt
 import yaml
 from cmdstanpy.stanfit import CmdStanMCMC
 from scipy.special import softmax
@@ -17,6 +18,7 @@ from scipy.special import softmax
 from nteprsm.constants import MONTH_ABBR, MONTH_BINS
 from settings import LOG_DIR
 
+logger = logging.getLogger(__name__)
 
 def load_config(path_to_config: str) -> dict:
     """
@@ -88,7 +90,7 @@ def setup_logging(log_directory="logs"):
 
     return logger
 
-
+     
 def rsm(theta, beta, tau):
     """
     Custom function to calculate probabilities based on theta, beta, and tau.
