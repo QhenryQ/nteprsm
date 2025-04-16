@@ -71,7 +71,9 @@ def get_file_id_from_fullpath(drive, fullpath):
 
     Args:
         drive (GoogleDrive): Authenticated GoogleDrive instance.
-        fullpath (str): Full path to the file in the format "root/folder1/folder2/file_name".
+        fullpath (str): Full path to the file in the format:
+                        For LOCAL folder: "folder1/folder2/file_name"
+                        For SHARED folder: "folder_id/folder_name/file_name" (The folder_id should be the ID of the shared folder)
 
     Returns:
         Optional[str]: The file ID if found, otherwise None.
@@ -82,17 +84,26 @@ def get_file_id_from_fullpath(drive, fullpath):
 
         # Traverse the path to find the file
         for part in path_parts[:-1]:
-            current_parent_id = get_folder_id(drive, part, current_parent_id)
+            # Check if the part is a folder ID (assume IDs are 33 characters long and alphanumeric)
+            if len(part) == 33 and part.isalnum():
+                current_parent_id = part
+                print(f"Using folder ID directly: {current_parent_id}")
+            else:
+                print(f"Looking for folder '{part}' in parent '{current_parent_id}'...")
+                current_parent_id = get_folder_id(drive, part, current_parent_id)
+            
             if not current_parent_id:
                 logger.error(f"Folder '{part}' not found in the path '{fullpath}'.")
                 return None
 
         file_name = path_parts[-1]
+        print(f"Looking for file '{file_name}' in parent '{current_parent_id}'...")
         query = (
             f"title='{file_name}' and '{current_parent_id}' in parents and trashed=false"
         )
         file_list = drive.ListFile({'q': query, 'maxResults': 1}).GetList()
         if file_list:
+            print(f"Found file '{file_name}' with ID: {file_list[0]['id']}")
             return file_list[0]['id']
         else:
             logger.warning(f"File '{file_name}' not found in path '{fullpath}'.")
@@ -218,4 +229,3 @@ def upload_object_to_drive(drive, content, title, parent_folder_id='root', mime_
     except Exception as e:
         logger.error(f"Failed to upload object with title '{title}': {e}")
         return None
-  
