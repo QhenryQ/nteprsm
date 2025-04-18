@@ -24,51 +24,38 @@ Front Plant Sci 2023 Jul 6;14:1135918
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed on your Mac:
-
-- [Homebrew](https://brew.sh/)
+Before you begin, ensure you have the following installed on your System:
 - [Git](https://git-scm.com/)
-- [Python 3.8+](https://www.python.org/)
-- [Poetry](https://python-poetry.org/)
 
 ### Steps
-
-1. **Install Homebrew** (if not already installed):
-    ```sh
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    ```
-
-2. **Install Git** (if not already installed):
-    ```sh
-    brew install git
-    ```
-
-3. **Install Python 3** (if not already installed):
-    ```sh
-    brew install python
-    ```
-
-4. **Install Poetry** (if not already installed):
-    ```sh
-    brew install poetry
-    ```
-
-5. **Clone the Repository**:
+1. **Clone the Repository**:
     ```sh
     git clone https://github.com/QhenryQ/nteprsm.git
     cd nteprsm
     ```
 
-6. **Install Dependencies with Poetry**:
-    ```sh
-    poetry install
+2. **Setup the Repository**:
+
+    ```bash
+    source tools/repo_setup.sh
     ```
 
-7. **Open VS Code**:
+    This script will perform the following tasks:
+
+    - **Set up a data directory**:  
+      We use Google Drive to share and sync data among collaborators. Please contact [Henry Qu](mailto:henry.yqu@gmail.com) to request access to the data.
+
+    - **Install Python 3.12.x**:  
+      Ensure that Python 3.12.x is installed on your system.
+
+    - **Install Poetry 2.1.0**:  
+      The script will also install Poetry version 2.1.0 for dependency management.
+ 
+3. **Open VS Code**:
     - Launch Visual Studio Code (VS Code).
     - Open the `nteprsm` project folder in VS Code.
 
-8. **Open Terminal in VS Code and Run the Environment**:
+4. **Open Terminal in VS Code and Run the Environment**:
     - Open the terminal in VS Code (`View > Terminal`).
     - Activate the Poetry environment by running:
         ```sh
@@ -76,15 +63,15 @@ Before you begin, ensure you have the following installed on your Mac:
         ```
     - Ensure the environment is active.
 
-9. **Run the Model**:
+5. **Run the Model**:
     ```sh
     python nteprsm/model.py config/nteprsm_in1kbg07.yml
     ```
 
-10. **Wait for the Iterations to Complete**:
-    - The process will start, and you will need to wait until the iterations are done.
+6. **Wait for the Iterations to Complete**:
+    - The process will start, and you will need to wait until the sampling are done.
 
-11. **Retrieve the CSV Files**:
+7. **Retrieve the CSV Files**:
     - After the iterations are complete, the CSV files will be generated.
     - These CSV files can later be used in Jupyter notebooks.
 
