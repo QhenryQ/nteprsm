@@ -23,9 +23,10 @@ Front Plant Sci 2023 Jul 6;14:1135918
 ## Installation Guide for `nteprsm` on Mac
 
 ### Prerequisites
+Before you begin, ensure the following tools are installed on your system:
 
-Before you begin, ensure you have the following installed on your System:
-- [Git](https://git-scm.com/)
+- [Git](https://git-scm.com/) for version control.
+- [Google Drive for Desktop](https://support.google.com/a/users/answer/13022292?hl=en#drive_desktop_install) to share and sync data among collaborators.
 
 ### Steps
 1. **Clone the Repository**:

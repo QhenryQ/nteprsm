@@ -19,12 +19,12 @@ read -r DATA_DIR
 DATA_DIR=${DATA_DIR:-$DEFAULT_DATA_DIR}
 echo "Using data directory: $DATA_DIR"
 
-# Update settings.py with the new DATA_DIR
+# Update settings.py with the new DATA_DIR as a Path object from pathlib
 SETTINGS_FILE="$REPO_ROOT/settings.py"
 if [ -f "$SETTINGS_FILE" ]; then
     echo "UPDATING DATA_DIR IN settings.py"
-    sed -i.bak "s|DATA_DIR = .*|DATA_DIR = \"$DATA_DIR\"|" "$SETTINGS_FILE"
-    echo "DATA_DIR updated to: $DATA_DIR"
+    sed -i.bak "s|DATA_DIR = .*|DATA_DIR = Path(\"$DATA_DIR\")|" "$SETTINGS_FILE"
+    echo "DATA_DIR updated to: Path(\"$DATA_DIR\")"
 else
     echo "ERROR: settings.py not found at $SETTINGS_FILE"
     exit 1

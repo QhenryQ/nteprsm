@@ -1,6 +1,7 @@
-import importlib.resources
+from importlib import resources
+from pathlib import Path
 
-SRC_DIR = importlib.resources.files("nteprsm")
+SRC_DIR = resources.files("nteprsm")
 
 # repository root folder
 ROOT_DIR = SRC_DIR.parent
