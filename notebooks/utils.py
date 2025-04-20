@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import re
 from scipy.spatial import distance_matrix
 
@@ -124,6 +126,7 @@ def simulate_rating_scores(theta, beta, taus):
     numerators = np.exp(np.cumsum(unsumed))
     denominators = sum(numerators)
     probs = numerators / denominators
+    # sample rating from the probabilities
     rating = np.random.choice(range(1, len(taus) + 2), p=probs)
     return rating
 
@@ -468,3 +471,250 @@ def convert_minutes_to_decimal_degrees(degree_minutes: str)->float:
     
     decimal_degrees = degrees + minutes / 60 + seconds / 3600
     return (-1)**("S" == dmsd[-1] or "W" == dmsd[-1]) * decimal_degrees
+
+## Helper functions
+def rbf_kernel_2D(
+    x1: np.ndarray, 
+    x2: np.ndarray, 
+    length_scale: float = 1.0, 
+    variance: float = 1.0
+) -> float:
+    """
+    Computes the Radial Basis Function (RBF) kernel (also known as Gaussian kernel) 
+    between two 2D points.
+
+    Args:
+        x1 (np.ndarray): The first 2D point as a NumPy array.
+        x2 (np.ndarray): The second 2D point as a NumPy array.
+        length_scale (float, optional): The length scale parameter of the RBF kernel. 
+            Controls the smoothness of the kernel. Default is 1.0.
+        variance (float, optional): The variance (amplitude) parameter of the RBF kernel. 
+            Controls the overall scale of the kernel. Default is 1.0.
+
+    Returns:
+        float: The computed RBF kernel value between the two points.
+    """
+    # Squared Euclidean distance
+    sqdist = np.sum((x1 - x2) ** 2)
+    return variance * np.exp(-0.5 * sqdist / length_scale**2)
+
+def generate_plot_effect_gaussian_process(
+    grid_width: int,
+    grid_height: int,
+    length_scale: float = 1.0,
+    variance: float = 1.0,
+    mean: float = 0.0
+) -> np.ndarray:
+    """
+    Generates a 2D grid of values sampled from a Gaussian process with a radial basis function (RBF) kernel.
+
+    Args:
+        grid_width (int): The width of the grid (number of points along the x-axis).
+        grid_height (int): The height of the grid (number of points along the y-axis).
+        length_scale (float, optional): The length scale parameter of the RBF kernel. Default is 1.0.
+        variance (float, optional): The variance parameter of the RBF kernel. Default is 1.0.
+        mean (float, optional): The mean of the Gaussian process. Default is 0.0.
+
+    Returns:
+        np.ndarray: A 2D numpy array of shape (grid_width, grid_height) containing the sampled values.
+    """
+    # Create the grid
+    x = np.arange(grid_width)
+    y = np.arange(grid_height)
+    grid_points = np.array([[i, j] for i in x for j in y])  # All (x, y) pairs
+    n = len(grid_points)
+
+    # Compute the covariance matrix
+    K = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            K[i, j] = rbf_kernel_2D(grid_points[i], grid_points[j], length_scale, variance)
+
+    # Add a small value to the diagonal for numerical stability
+    K += 1e-6 * np.eye(n)
+
+    # Sample from the multivariate Gaussian distribution
+    gp_values = np.random.multivariate_normal(mean * np.ones(n), K)
+
+    # Reshape to a 2D grid
+    gp_grid = gp_values.reshape((grid_width, grid_height))
+
+    return gp_grid
+
+def periodic_kernel(
+    x1: float, 
+    x2: float, 
+    length_scale: float = 1.0, 
+    variance: float = 1.0, 
+    period: float = 1.0
+) -> float:
+    """
+    Periodic kernel function for 1D inputs.
+
+    Args:
+        x1 (float): First input value.
+        x2 (float): Second input value.
+        length_scale (float, optional): Length scale parameter. Default is 1.0.
+        variance (float, optional): Variance parameter. Default is 1.0.
+        period (float, optional): Periodicity parameter. Default is 1.0.
+
+    Returns:
+        float: The computed kernel value.
+    """
+    dist = np.abs(x1 - x2)
+    sin_term = np.sin(np.pi * dist / period)  # Sinusoidal periodicity
+    return variance * np.exp(-2 * (sin_term**2) / length_scale**2)
+
+def generate_1d_gaussian_process(
+    extra_points: int = 0,
+    length_scale: float = 1.0,
+    variance: float = 1.0,
+    period: float = 1.0,
+    inp_arr: list = None,
+    mean: float = 0.0,
+    force_mean: bool = True
+) -> tuple:
+    """
+    Generate a 1D Gaussian Process with a periodic kernel.
+
+    Args:
+        extra_points (int): Number of extra evenly spaced points to add between 0 and 1.
+        length_scale (float): Length scale parameter of the periodic kernel.
+        variance (float): Variance parameter of the periodic kernel.
+        period (float): Periodicity parameter of the periodic kernel.
+        inp_arr (list): Input array of points.
+        mean (float): Mean of the Gaussian process.
+        force_mean (bool): Whether to force the mean of the samples to match the specified mean.
+
+    Returns:
+        tuple: A tuple containing the input array and the generated Gaussian process samples.
+    """
+    if inp_arr is None:
+        inp_arr = []
+    x = inp_arr.copy()
+    # Define the 1D grid
+    if extra_points > 1:
+        x.extend(list(np.linspace(0, 1, extra_points, endpoint=False)))  # Inputs evenly spaced between 0 and 1
+    x = np.array(x)
+    n = len(x)
+
+    assert n > 1
+
+    # Compute the covariance matrix
+    K = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            K[i, j] = periodic_kernel(x[i], x[j], length_scale, variance, period)
+    
+    # Add a small jitter for numerical stability
+    K += 1e-6 * np.eye(n)
+
+    # Sample from the multivariate Gaussian
+    gp_samples = np.random.multivariate_normal(mean * np.ones(n), K)
+
+    if force_mean:
+        gp_samples = gp_samples - np.mean(gp_samples) + mean
+
+    assert len(gp_samples) == n
+    
+    return x, gp_samples
+
+def rsm_probability(
+    y: int, 
+    theta: np.ndarray, 
+    tau: np.ndarray
+) -> float:
+    """
+    Calculates the probability of a given class label in the model.
+
+    Args:
+        y (int): The class label for which the probability is calculated.
+        theta (np.ndarray): An array of model parameters.
+        tau (np.ndarray): The threshold parameters for the model.
+
+    Returns:
+        float: The probability of the given class label.
+    """
+    unsummed = np.concatenate(([0], theta - tau))
+    probs = softmax(np.cumsum(unsummed))
+    return probs[y]
+
+def rsm_probability_vector(
+    theta: np.ndarray, 
+    tau: np.ndarray
+) -> np.ndarray:
+    """
+    Calculates the probability of a set of class labels in the given model.
+
+    Args:
+        theta (np.ndarray): An array of model parameters.
+        tau (np.ndarray): The threshold parameters for the model.
+
+    Returns:
+        np.ndarray: Array of probabilities for the given class labels.
+    """
+    unsummed = np.concatenate(([0], theta - tau))
+    probs = softmax(np.cumsum(unsummed))
+    return probs
+
+def plot_rater_characteristic_curve_matplotlib(
+    taus: np.ndarray,
+    min_theta: float = -6,
+    max_theta: float = 6,
+    resolution: int = 500,
+    colors: dict = NTEP_COLOR_SCALE,
+    dimensions: tuple = None,
+):
+    """
+    Plot the characteristic curves for raters using Matplotlib and the RSM probability function.
+
+    Args:
+        taus (np.ndarray): Threshold parameters for the model.
+        min_theta (float, optional): Minimum value of the latent scale. Defaults to -6.
+        max_theta (float, optional): Maximum value of the latent scale. Defaults to 6.
+        resolution (int, optional): Number of points to evaluate between min_theta and max_theta. Defaults to 500.
+        colors (dict, optional): Dictionary of colors for categories. If None, a colormap is used.
+        dimensions (tuple, optional): Dimensions of the figure in inches (width, height).
+
+    Returns:
+        matplotlib.figure.Figure: The figure object containing the plot.
+    """
+    x = np.linspace(min_theta, max_theta, int((max_theta - min_theta) * resolution))
+    num_categories = len(taus) + 1
+
+    if colors is None:
+        cmap = plt.get_cmap('Spectral', num_categories)
+        colors = {i + 1: cmap(i) for i in range(num_categories)}
+
+    fig, ax = plt.subplots(figsize=dimensions if dimensions else (10, 6))
+
+    taus_with_bounds = np.concatenate(([min_theta], taus, [max_theta]))
+
+    # Plot probability curves
+    for i in range(num_categories):
+        y_vals = [rsm_probability(i, np.array([theta]), taus) for theta in x]
+        ax.plot(x, y_vals, label=f'Category {i + 1}', color=colors[i + 1], linewidth=2)
+
+        # Highlight threshold regions
+        rect = patches.Rectangle(
+            (taus_with_bounds[i], 1.02),
+            taus_with_bounds[i + 1] - taus_with_bounds[i],
+            0.08,
+            linewidth=0,
+            color=colors[i + 1],
+            alpha=0.6
+        )
+        ax.add_patch(rect)
+
+        # Dashed vertical line for each tau
+        if i < len(taus):
+            ax.axvline(taus[i], color=colors[i + 1], linestyle='dotted')
+
+    ax.set_xlabel("Turf Quality on Latent Scale")
+    ax.set_ylabel("Probability")
+    ax.set_ylim(0, 1.12)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")  # Move legend to the right of the plot
+    ax.set_title("Rater Characteristic Curves")
+
+    plt.tight_layout()
+    return fig
