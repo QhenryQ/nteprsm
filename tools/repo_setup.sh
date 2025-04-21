@@ -27,7 +27,6 @@ if [ -f "$SETTINGS_FILE" ]; then
     echo "DATA_DIR updated to: Path(\"$DATA_DIR\")"
 else
     echo "ERROR: settings.py not found at $SETTINGS_FILE"
-    exit 1
 fi
 
 # Ensure Python 3.12 is installed
@@ -49,23 +48,17 @@ if ! [ -x "$(command -v python3)" ]; then
     elif [[ "$(uname -s)" == *"MINGW"* || "$(uname -s)" == *"CYGWIN"* ]]; then
         # Windows (Git Bash or Cygwin)
         echo "Please install Python $PYTHON_VERSION_REQUIRED manually from https://www.python.org/downloads/"
-        exit 1
     else
         echo "Unsupported OS. Please install Python $PYTHON_VERSION_REQUIRED manually."
-        exit 1
     fi
 fi
 
 CURRENT_PYTHON_VERSION=$(python3 --version | awk '{print $2}')
-if [[ "$CURRENT_PYTHON_VERSION" != "$PYTHON_VERSION_REQUIRED"* ]]; then
-    if [[ "$CURRENT_PYTHON_VERSION" =~ ^3\.12\.* ]]; then
-        echo "PYTHON $CURRENT_PYTHON_VERSION IS COMPATIBLE WITH REQUIRED VERSION $PYTHON_VERSION_REQUIRED."
-    else
-        echo "CURRENT PYTHON VERSION ($CURRENT_PYTHON_VERSION) IS NOT COMPATIBLE WITH $PYTHON_VERSION_REQUIRED. PLEASE INSTALL PYTHON $PYTHON_VERSION_REQUIRED."
-        exit 1
-    fi
+if [[ "$CURRENT_PYTHON_VERSION" =~ ^3\.12\.* ]]; then
+    echo "PYTHON $CURRENT_PYTHON_VERSION IS COMPATIBLE WITH REQUIRED VERSION $PYTHON_VERSION_REQUIRED."
 else
-    echo "PYTHON $CURRENT_PYTHON_VERSION IS INSTALLED."
+    echo "ERROR: PYTHON $CURRENT_PYTHON_VERSION IS NOT COMPATIBLE WITH REQUIRED VERSION $PYTHON_VERSION_REQUIRED."
+    exit 1
 fi
 
 # Check Poetry installation
