@@ -1,8 +1,8 @@
-stan_file: "models/no_consistent_rater_model_dist_matrix.stan" 
+stan_file: "models/spatial_model.stan" 
 stan_additional_data:  # additional input for Stan model data block
-  M_f: 8          # number of basis function
-  pred_N: 100     # number new predictions in a year
-  padding: 5      # padding of grid in Fourier Method
+  M_f: 8               # number of basis function
+  pred_N: 100          # number new predictions in a year
+  padding: 5           # padding of grid in Fourier Method
 sampling: 
   parallel_chains: 4
   seed: 1

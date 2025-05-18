@@ -11,6 +11,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import yaml
+import warnings
 from cmdstanpy.stanfit import CmdStanMCMC
 from scipy.special import softmax
 
@@ -145,6 +146,7 @@ def rsm_probability(y, theta, tau):
 class DataHandler:
     def __init__(
         self,
+        target: str = "value",
         filepath: Optional[Path | str] = None,
         logger: Optional[logging.Logger] = None,
     ):
@@ -159,80 +161,118 @@ class DataHandler:
         """
         self.filepath = Path(filepath)
         self.logger = logger if logger is not None else setup_logging(LOG_DIR)
+        self.target = target
         self.raw_data = None
         self.model_data = None
         self.stan_data = None
 
-    def load_data(self):
+    def load_data(self, raw_data: Optional[pd.DataFrame] = None):
         """
-        Load data from file specified during class initialization.
+        Loads data into the class from a provided DataFrame or from a CSV file 
+        specified during initialization.
 
-        Raises:
-            FileNotFoundError: If the CSV file is not found at the specified path.
-            ValueError: If the file extension is not CSV.
+        If a DataFrame is provided via the `raw_data` parameter, it is used 
+        directly. Otherwise, the method attempts to load data from the file path
+        specified during class initialization. The method performs several 
+        checks: it ensures a file path is provided, verifies the file has a 
+        `.csv` extension, and checks that the file exists. Appropriate logging 
+        is performed at each step.
+
+        Args:
+            raw_data (Optional[pd.DataFrame]): An optional DataFrame to load 
+            directly. If not provided, data is loaded from the file path.
+
+            ValueError: If no file path is provided or if the file is not a CSV.
+            FileNotFoundError: If the specified CSV file does not exist.
         """
+        if raw_data is not None:
+            self.raw_data = raw_data
+            self.logger.info("Data loaded from provided DataFrame.")
+            return
+
         if not self.filepath:
             self.logger.error("File path is not provided.")
             raise ValueError("File path must be provided.")
-        if self.filepath.suffix == ".csv":
-            self.logger.info(f"Loading data from {self.filepath}...")
-            self.raw_data = pd.read_csv(self.filepath)
-        else:
-            raise FileNotFoundError(
-                f"File {self.filepath} not found or is not a CSV file."
-            )
+
+        if self.filepath.suffix.lower() != ".csv":
+            self.logger.error(f"File {self.filepath} is not a CSV file.")
+            raise ValueError(f"File {self.filepath} is not a CSV file.")
+
+        if not self.filepath.exists():
+            self.logger.error(f"File {self.filepath} not found.")
+            raise FileNotFoundError(f"File {self.filepath} not found.")
+
+        self.logger.info(f"Loading data from {self.filepath}...")
+        self.raw_data = pd.read_csv(self.filepath)
 
     def preprocess_data(self):
         """
-        Preprocess the loaded data. This method assumes data is already loaded
-        into `self.raw_data`.
+        Preprocess the loaded data for modeling.
 
-        - Convert all column names to lowercase.
-        - Encode categorical variables.
+        Steps:
+        - Ensures required columns are present.
+        - Converts date column to datetime and adjusts day of year for leap years.
+        - Computes adjusted time of year and cumulative entry count.
+        - Normalizes the target variable to start at 0.
+        - Checks that *_code columns are continuous from 1 to max.
+
+        Raises:
+            Exception: If data is not loaded.
+            ValueError: If required columns are missing or codes are not continuous.
         """
         if self.raw_data is None:
             raise Exception("Data not loaded. Call 'load_data' first.")
 
-        self.logger.info("Start preprocessing data...")
-        # make sure all column names to lower case
-        model_data = self.raw_data.copy()
-        model_data.columns = [col.lower() for col in model_data.columns]
+        required_columns = [
+            "entry_code", "plot_code", "rater_code", "rating_event_code", "date",
+            self.target, "row", "col",
+        ]
+        missing = [col for col in required_columns if col not in self.raw_data.columns]
+        if missing:
+            raise ValueError(f"Missing required columns in data: {missing}")
 
-        model_data = model_data.assign(
-            ##TODO: de-duplicate entry_code and entry_name_code. 
-            entry_name_code=pd.Categorical(model_data["entry_name"]).codes,
-            plt_id_code=pd.Categorical(model_data["plt_id"]).codes,
-            rater_code=pd.Categorical(model_data["rater"]).codes,
-            rating_event_code=pd.Categorical(model_data["rating_event"]).codes,
-            date=pd.to_datetime(model_data["date"]),
-        )
-        # adjust day of year for leap year, Feb 29th is the 60th day of the year
-        # day_of_year on or past Feb 29th in a leap year will reduced by 1.
-        model_data["adj_day_of_year"] = model_data.date.dt.day_of_year - (
-            model_data.date.dt.is_leap_year * model_data.date.dt.day_of_year >= 60
-        )
-        model_data["adj_time_of_year"] = model_data.adj_day_of_year / 365
-        model_data["entry_cumcount"] = model_data.groupby("entry_name").cumcount() + 1
+        model_data = self.raw_data[required_columns].copy()
+
+        # Parse dates and adjust day of year for leap years (Feb 29)
+        model_data["date"] = pd.to_datetime(model_data["date"], errors="coerce")
+        if model_data["date"].isna().any():
+            warnings.warn(
+            f"Some dates could not be parsed and were set to NaT. "
+            f"Rows: {model_data[model_data['date'].isna()].index.tolist()}",
+            UserWarning,
+            )
+        # Adjust day_of_year for leap years (remove Feb 29)
+        day_of_year = model_data["date"].dt.day_of_year
+        is_leap = model_data["date"].dt.is_leap_year
+        leap_correction = ((is_leap) & (day_of_year >= 60)).astype(int)
+        model_data["adj_day_of_year"] = day_of_year - leap_correction
+        model_data["adj_time_of_year"] = model_data["adj_day_of_year"] / 365
+        model_data["entry_cumcount"] = model_data.groupby("entry_code").cumcount() + 1
+        
+
+        # Normalize target to start at 0
+        model_data[self.target] -= model_data[self.target].min()
+
         self.model_data = model_data
         self.logger.info("Data preprocessing completed.")
 
-    def get_processed_data(self) -> pd.DataFrame:
-        """
-        Return the processed data.
-
-        Returns:
-            pd.DataFrame: The processed data.
-        """
-        if self.processed_data is None:
-            raise Exception(
-                "Data has not been processed. Call 'preprocess_data' first."
-            )
-        return self.processed_data
+        # Check columns are continuous from 1 to max
+        check_columns = [
+            col for col in model_data.columns
+            if col.endswith("_code") and col != self.target
+        ]
+        check_columns.extend(["row", "col"])
+        
+        for col in check_columns:
+            codes = model_data[col].unique()
+            if not np.array_equal(np.sort(codes), np.arange(1, codes.max() + 1)):
+                raise ValueError(
+                    f"Column '{col}' must contain continuous codes starting from 1 to {codes.max()}."
+                )
 
     def generate_stan_data(
         self,
         plot_data: Optional[pd.DataFrame] = None,
-        target: str = "quality",
         **kwargs,
     ) -> None:
         """
@@ -262,20 +302,23 @@ class DataHandler:
 
         self.logger.info("Generating data dictionary for the model...")
         if plot_data is None:
-            plot_data = self.model_data.groupby("plt_id_code")[["row", "col"]].mean()
+            plot_data = self.model_data.groupby("plot_code")[["row", "col"]].mean()
 
         stan_data = {
-            "y": (self.model_data[target] - self.model_data[target].min()).values,
-            "N": len(self.model_data[target]),
-            "num_raters": int(self.model_data.rater.nunique()),
-            "num_entries": int(self.model_data.entry_name.nunique()),
-            "num_plots": int(self.model_data.plt_id.nunique()),
-            "num_categories": int(self.model_data[target].nunique()),
-            "rater_id": self.model_data.rater_code.values + 1,
-            "entry_id": self.model_data.entry_name_code.values + 1,
-            "plot_id": self.model_data.plt_id_code.values + 1,
+            "y": self.model_data[self.target].values,
+            "N": len(self.model_data[self.target]),
+            "num_ratings": int(self.model_data.rating_event_code.max()),
+            "num_raters": int(self.model_data.rater_code.max()),
+            "num_entries": int(self.model_data.entry_code.max()),
+            "num_plots": int(self.model_data.plot_code.max()),
+            "y_max": int(self.model_data[self.target].max()),
+            "rating_event_code": self.model_data.rating_event_code.values,
+            "entry_code": self.model_data.entry_code.values,
+            "plot_code": self.model_data.plot_code.values,
+            "rater_code": self.model_data.rater_code.values,
             "DIST": self.calculate_distance_matrix(),
-            "num_ratings_per_entry": self.model_data.groupby("entry_name").count()["plt_id"].max(),
+            "num_ratings_per_entry": 
+                self.model_data.groupby("entry_code").count()["plot_code"].max(),
             "num_rows": int(plot_data.row.max()),
             "num_cols": int(plot_data.col.max()),
             "plot_row": plot_data.row.astype(int).values,
@@ -291,7 +334,7 @@ class DataHandler:
         if 'row' not in self.model_data.columns or 'col' not in self.model_data.columns:
             raise ValueError("Plot coordinates ('row' and 'col') must be present in the data.")
 
-        plot_data = self.model_data[['plt_id_code', 'row', 'col']].drop_duplicates()
+        plot_data = self.model_data[['plot_code', 'row', 'col']].drop_duplicates()
         plot_coordinates = plot_data[['row', 'col']].values
         
         # Calculate pairwise Euclidean distances
@@ -300,45 +343,30 @@ class DataHandler:
 
         return distance_matrix
 
-    def get_stan_data(self) -> Dict:
-        """
-        Return the processed Stan data.
+    # comment out this function for now. name2code mappping should be done on
+    # the trial level, making it consistent across all locations. 
 
-        Returns:
-            Dict: The processed Stan data.
-        """
-        if self.stan_data is None:
-            self.logger.error(
-                "Stan data has not been generated. \
-                Call 'generate_stan_data' first."
-            )
-            raise Exception(
-                "Stan data has not been generated. \
-                Call 'generate_stan_data' first."
-            )
-        return self.stan_data
+    # def map_name2code(self, column_name, code_column_name, invert=False):
+    #     """
+    #     Retrieves a dictionary mapping names to codes from specified columns.
 
-    def map_name2code(self, column_name, code_column_name, invert=False):
-        """
-        Retrieves a dictionary mapping names to codes from specified columns.
+    #     Args:
+    #         column_name(str): The name of the column containing the names(
+    #         e.g., 'ENTRY_NAME', 'RATER').
+    #         code_column_name(str): The name of the column containing the codes
+    #         (e.g., 'ENTRY_NAME_CODE', 'RATER_CODE').
+    #         invert(bool): If True, returns a dictionary mapping codes to names.
 
-        Args:
-            column_name(str): The name of the column containing the names(
-            e.g., 'ENTRY_NAME', 'RATER').
-            code_column_name(str): The name of the column containing the codes
-            (e.g., 'ENTRY_NAME_CODE', 'RATER_CODE').
-            invert(bool): If True, returns a dictionary mapping codes to names.
+    #     Returns:
+    #         dict: Depending on 'invert', returns either a dict of {name: code}
+    #         or {code: name}.
+    #     """
+    #     name2code = dict(self.model_data.groupby(column_name)[code_column_name].first())
 
-        Returns:
-            dict: Depending on 'invert', returns either a dict of {name: code}
-            or {code: name}.
-        """
-        name2code = dict(self.model_data.groupby(column_name)[code_column_name].first())
-
-        if invert:
-            # Using dictionary comprehension for inverting the dictionary
-            return {int(code): name for name, code in name2code.items()}
-        return name2code
+    #     if invert:
+    #         # Using dictionary comprehension for inverting the dictionary
+    #         return {int(code): name for name, code in name2code.items()}
+    #     return name2code
 
 
 class PosteriorSampleAnalysis:
