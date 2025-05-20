@@ -253,9 +253,6 @@ class DataHandler:
         # Normalize target to start at 0
         model_data[self.target] -= model_data[self.target].min()
 
-        self.model_data = model_data
-        self.logger.info("Data preprocessing completed.")
-
         # Check columns are continuous from 1 to max
         check_columns = [
             col for col in model_data.columns
@@ -271,6 +268,9 @@ class DataHandler:
                     UserWarning,
                 )
                 model_data[col] = pd.Categorical(model_data[col]).codes + 1
+
+        self.model_data = model_data
+        self.logger.info("Data preprocessing completed.")
 
     def generate_stan_data(
         self,
