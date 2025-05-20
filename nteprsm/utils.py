@@ -265,9 +265,12 @@ class DataHandler:
         for col in check_columns:
             codes = model_data[col].unique()
             if not np.array_equal(np.sort(codes), np.arange(1, codes.max() + 1)):
-                raise ValueError(
-                    f"Column '{col}' must contain continuous codes starting from 1 to {codes.max()}."
+                warnings.warn(
+                    f"Column '{col}' does not contain continuous codes starting from 1 to {codes.max()}. "
+                    "Fixing codes using pd.Categorical().codes + 1.",
+                    UserWarning,
                 )
+                model_data[col] = pd.Categorical(model_data[col]).codes + 1
 
     def generate_stan_data(
         self,
