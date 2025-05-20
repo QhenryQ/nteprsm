@@ -261,7 +261,6 @@ class DataHandler:
             col for col in model_data.columns
             if col.endswith("_code") and col != self.target
         ]
-        check_columns.extend(["row", "col"])
         
         for col in check_columns:
             codes = model_data[col].unique()
