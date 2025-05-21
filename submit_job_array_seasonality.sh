@@ -5,12 +5,12 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --time=3:00:00
 #SBATCH --mem=32G
-#SBATCH --array=0-1
+#SBATCH --array=0-6
 #SBATCH --partition=msilarge
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=oboiko@umn.edu
 #SBATCH --output=model_runs/%A_%a.out
-locs_traits=('in1/quality' 'mi1/quality') #'mn1/quality' 'nc1/quality' 'nj2/quality' 'ok1/quality' 'ut1/quality')
+locs_traits=('ut1/quality' 'in1/quality' 'mi1/quality' 'mn1/quality' 'nc1/quality' 'nj2/quality' 'ok1/quality')
 echo "My SLURM_ARRAY_JOB_ID is $SLURM_ARRAY_JOB_ID"
 echo "My SLURM_ARRAY_TASK_ID is $SLURM_ARRAY_TASK_ID"
 loc_trait=${locs_traits[$SLURM_ARRAY_TASK_ID]}
