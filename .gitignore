@@ -53,3 +53,6 @@ htmlcov/
 
 # binary files in models
 /models/[a-zA-Z0-9_]*
+
+# exclude .stan files in models
+!/models/*.stan
