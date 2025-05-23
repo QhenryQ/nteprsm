@@ -166,44 +166,48 @@ class DataHandler:
         self.model_data = None
         self.stan_data = None
 
-    def load_data(self, raw_data: Optional[pd.DataFrame] = None):
+    def load_data(self, raw_data: pd.DataFrame) -> None:
         """
-        Loads data into the class from a provided DataFrame or from a CSV file 
-        specified during initialization.
+        Load and preprocess raw data from a DataFrame.
 
-        If a DataFrame is provided via the `raw_data` parameter, it is used 
-        directly. Otherwise, the method attempts to load data from the file path
-        specified during class initialization. The method performs several 
-        checks: it ensures a file path is provided, verifies the file has a 
-        `.csv` extension, and checks that the file exists. Appropriate logging 
-        is performed at each step.
+        - Creates a unique 'rating_event' identifier by combining 'rater' and formatted 'date'.
+        - Encodes 'rater' and 'rating_event' as 1-indexed categorical codes for Stan compatibility.
+        - Stores the processed DataFrame in self.raw_data.
 
         Args:
-            raw_data (Optional[pd.DataFrame]): An optional DataFrame to load 
-            directly. If not provided, data is loaded from the file path.
+            raw_data (pd.DataFrame): Input DataFrame containing at least 'rater' and 'date' columns.
 
-            ValueError: If no file path is provided or if the file is not a CSV.
-            FileNotFoundError: If the specified CSV file does not exist.
+        Raises:
+            KeyError: If required columns ('rater', 'date') are missing.
         """
-        if raw_data is not None:
-            self.raw_data = raw_data
-            self.logger.info("Data loaded from provided DataFrame.")
-            return
+        required_cols = {"rater", "date"}
+        missing = required_cols - set(raw_data.columns)
+        if missing:
+            raise KeyError(f"Missing required columns: {missing}")
 
-        if not self.filepath:
-            self.logger.error("File path is not provided.")
-            raise ValueError("File path must be provided.")
+        # Ensure 'date' is in datetime format for consistent processing
+        raw_data = raw_data.copy()
+        raw_data["date"] = pd.to_datetime(raw_data["date"], errors="coerce")
+        if raw_data["date"].isna().any():
+            warnings.warn(
+                f"Some dates could not be parsed and were set to NaT. "
+                f"Rows: {raw_data[raw_data['date'].isna()].index.tolist()}",
+                UserWarning,
+            )
 
-        if self.filepath.suffix.lower() != ".csv":
-            self.logger.error(f"File {self.filepath} is not a CSV file.")
-            raise ValueError(f"File {self.filepath} is not a CSV file.")
+        # Create unique rating event identifier
+        raw_data["rating_event"] = (
+            raw_data["rater"].astype(str)
+            + "-"
+            + raw_data["date"].dt.strftime("%m-%d-%y")
+        )
 
-        if not self.filepath.exists():
-            self.logger.error(f"File {self.filepath} not found.")
-            raise FileNotFoundError(f"File {self.filepath} not found.")
+        # Encode as 1-indexed categorical codes for Stan
+        raw_data["rater_code"] = pd.Categorical(raw_data["rater"]).codes + 1
+        raw_data["rating_event_code"] = pd.Categorical(raw_data["rating_event"]).codes + 1
 
-        self.logger.info(f"Loading data from {self.filepath}...")
-        self.raw_data = pd.read_csv(self.filepath)
+        self.raw_data = raw_data
+        self.logger.info("Data loaded and processed from provided DataFrame.")
 
     def preprocess_data(self):
         """
