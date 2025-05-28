@@ -317,20 +317,19 @@ class DataHandler:
             "num_raters": int(self.model_data.rater_code.max()),
             "num_entries": int(self.model_data.entry_code.max()),
             "num_plots": int(self.model_data.plot_code.max()),
+            "num_rating_events": int(self.model_data.rating_event_code.max()),
             "y_max": int(self.model_data[self.target].max()),
             "rating_event_code": self.model_data.rating_event_code.values,
             "entry_code": self.model_data.entry_code.values,
             "plot_code": self.model_data.plot_code.values,
             "rater_code": self.model_data.rater_code.values,
             "DIST": self.calculate_distance_matrix(),
-            "num_ratings_per_entry": 
-                self.model_data.groupby("entry_code").count()["plot_code"].max(),
             "num_rows": int(plot_data.row.max()),
             "num_cols": int(plot_data.col.max()),
             "plot_row": plot_data.row.astype(int).values,
             "plot_col": plot_data.col.astype(int).values,
-            "time": self.model_data.adj_time_of_year.values,
-            "entry_cumcount": self.model_data.entry_cumcount.values,
+            "time": self.model_data[['rating_event_code', 'adj_time_of_year']
+                                    ].drop_duplicates().sort_values('rating_event_code').set_index('rating_event_code').values.reshape(-1),
         }
 
         stan_data.update(kwargs)

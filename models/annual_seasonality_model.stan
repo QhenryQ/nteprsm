@@ -65,10 +65,10 @@ data {
   // data needed for Time Effect GP
   int<lower=1> num_entries;             // total number of entries
   int<lower=1> M_f;                     // number of basis functions
-  int<lower=1> num_ratings_per_entry;   // number of ratings each entry received
+  int<lower=1> num_rating_events;
   array[N] int<lower=1, upper=num_entries> entry_code; // entry code of response n
-  array[N] real time;                   // time of year the rating was taken at (float from 0 to 1)
-  array[N] int<lower=1> entry_cumcount; // cumulative count of the entry
+  array[N] int<lower=1> rating_event_code; // rating event of response n
+  array[num_rating_events] real time;       // time of year corresponding to each rating event, float frmo 0-1
 
   // data needed for rater information
   int<lower=1> num_raters;                            // total number of distinct raters
@@ -91,9 +91,10 @@ transformed data {
   for (i in 1:pred_N) pred_time[i] = i * 1.0 / pred_N;
 
   // xn is standardized array of dates corresponding to each entry
-  vector[num_ratings_per_entry] xn;
-  for (n in 1:N) xn[entry_cumcount[n]] = (time[n] - mean_time) / sd_time;
+  vector[num_rating_events] xn; 
+  for (n in 1:num_rating_events) xn[n] = (time[n]-mean_time)/sd_time;
   pred_xn = (pred_time - mean_time) / sd_time;
+  matrix[num_rating_events ,2*M_f] PHI_f = PHI_periodic(num_rating_events, M_f, 2*pi()/period, xn);
 }
 
 parameters {
@@ -114,9 +115,8 @@ parameters {
 
 transformed parameters {
   vector[num_plots] plot_effect;                                 // plot effect
-  array[num_entries] vector[num_ratings_per_entry] time_effect;  // time effect
+  array[num_entries] vector[num_rating_events] time_effect;      // time effect
   vector[2 * M_f] diagSPD_f;                                     // spectral densities of periodic kernel
-  matrix[num_ratings_per_entry, 2 * M_f] PHI_f;                  // evaluation of eigenfunctions of periodic kernel on x
 
   // fourier method for Plot Effect
   matrix[num_rows_padded, num_cols_padded %/% 2 + 1] rfft2_cov =
@@ -132,7 +132,6 @@ transformed parameters {
 
   // Hilbert Basis approximation for Time effect
   diagSPD_f = diagSPD_periodic(sigma_f, lengthscale_f, M_f);
-  PHI_f = PHI_periodic(num_ratings_per_entry, M_f, 2 * pi() / period, xn);
   for (i in 1:num_entries)
     time_effect[i] = intercept_f[i] + PHI_f * (diagSPD_f .* beta_f[i]);
 }
@@ -159,7 +158,7 @@ model {
   for (n in 1:N)
     target += rsm(
       y[n],
-      plot_effect[plot_code[n]] + time_effect[entry_code[n]][entry_cumcount[n]],
+      plot_effect[plot_code[n]] + time_effect[entry_code[n]][rating_event_code[n]],
       tau_rater[rater_code[n]]
     );
 }
@@ -175,7 +174,7 @@ generated quantities {
   for (n in 1:N)
     log_lik[n] = rsm(
       y[n],
-      plot_effect[plot_code[n]] + time_effect[entry_code[n]][entry_cumcount[n]],
+      plot_effect[plot_code[n]] + time_effect[entry_code[n]][rating_event_code[n]],
       tau_rater[rater_code[n]]
     );
 }
