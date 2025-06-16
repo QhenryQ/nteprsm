@@ -16,4 +16,4 @@ sampling:
   save_warmup: True
   output_dir: 'data/model_output/in1' 
   time_fmt: '%Y%m%d'
-  show_console: True
+  show_console: False
