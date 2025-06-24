@@ -86,7 +86,7 @@ transformed data {
   vector[pred_N] pred_xn;
   real period = 1 / sd_time;
   int<lower=1> num_rows_padded = num_rows + padding;
-  int<lower=1> num_cols_padded = num_rows + padding;
+  int<lower=1> num_cols_padded = num_cols + padding;
   vector[pred_N] pred_time;
   for (i in 1:pred_N) pred_time[i] = i * 1.0 / pred_N;
 
