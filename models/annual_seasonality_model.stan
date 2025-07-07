@@ -65,10 +65,10 @@ data {
   // data needed for Time Effect GP
   int<lower=1> num_entries;             // total number of entries
   int<lower=1> M_f;                     // number of basis functions
-  int<lower=1> num_rating_events;
+  int<lower=1> num_ratings;
   array[N] int<lower=1, upper=num_entries> entry_code; // entry code of response n
   array[N] int<lower=1> rating_event_code; // rating event of response n
-  array[num_rating_events] real time;       // time of year corresponding to each rating event, float frmo 0-1
+  array[num_ratings] real time;       // time of year corresponding to each rating event, float frmo 0-1
 
   // data needed for rater information
   int<lower=1> num_raters;                            // total number of distinct raters
@@ -91,10 +91,10 @@ transformed data {
   for (i in 1:pred_N) pred_time[i] = i * 1.0 / pred_N;
 
   // xn is standardized array of dates corresponding to each entry
-  vector[num_rating_events] xn; 
-  for (n in 1:num_rating_events) xn[n] = (time[n]-mean_time)/sd_time;
+  vector[num_ratings] xn; 
+  for (n in 1:num_ratings) xn[n] = (time[n]-mean_time)/sd_time;
   pred_xn = (pred_time - mean_time) / sd_time;
-  matrix[num_rating_events ,2*M_f] PHI_f = PHI_periodic(num_rating_events, M_f, 2*pi()/period, xn);
+  matrix[num_ratings ,2*M_f] PHI_f = PHI_periodic(num_ratings, M_f, 2*pi()/period, xn);
 }
 
 parameters {
@@ -115,7 +115,7 @@ parameters {
 
 transformed parameters {
   vector[num_plots] plot_effect;                                 // plot effect
-  array[num_entries] vector[num_rating_events] time_effect;      // time effect
+  array[num_entries] vector[num_ratings] time_effect;      // time effect
   vector[2 * M_f] diagSPD_f;                                     // spectral densities of periodic kernel
 
   // fourier method for Plot Effect
