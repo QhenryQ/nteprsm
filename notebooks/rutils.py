@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import re
 from scipy.spatial import distance_matrix
+from scipy.special import softmax
 
 from nteprsm.constants import NTEP_COLOR_SCALE
 
@@ -43,22 +44,6 @@ def set_custom_template():
     # Save the custom template
     pio.templates["custom"] = custom_template
     pio.templates.default = "custom"
-
-
-def softmax(z):
-    """
-    The softmax function takes as input a vector z of K real numbers,
-    and normalizes it into a probability distribution consisting of K
-    probabilities proportional to the exponentials of the input numbers.
-
-    Args:
-        vector (np.array or list): a vector of K real numbers
-
-    Returns:
-        np.array or list: a vector of K probabilities
-    """
-    e = np.exp(z)
-    return e / e.sum()
 
 
 def distmatrix_to_expquadkernel(dist_matrix, alpha, inv_rho, sigma_e):
@@ -718,3 +703,25 @@ def plot_rater_characteristic_curve_matplotlib(
 
     plt.tight_layout()
     return fig
+
+
+def map_name2code(datahandler, column_name, code_column_name, invert=False):
+    """Retrieves a dictionary mapping names to codes from specified columns."""
+    name2code = dict(datahandler.model_data.groupby(column_name)[code_column_name].first())
+    if invert:
+        name2code = {v: k for k, v in name2code.items()}
+    return name2code
+
+def extract_time_effect(datahandler: "utils.DataHandler", fit: "stan fit object") -> pd.DataFrame:
+    """Extract and format the time effect from a fitted model object."""
+    raing_event2doy = datahandler.model_data[['adj_time_of_year', 'rating_event_code']].drop_duplicates(
+        ).sort_values(by='rating_event_code')
+    time_effect = pd.DataFrame(
+        fit.stan_variable("time_effect").mean(axis=0),
+        columns=raing_event2doy['adj_time_of_year'].values
+    )
+    
+    time_effect.index = time_effect.index
+    time_effect = time_effect.T.sort_index()
+    time_effect.index.name = 'adj_time_of_year'
+    return time_effect
