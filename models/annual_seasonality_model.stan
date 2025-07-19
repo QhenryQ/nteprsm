@@ -138,7 +138,7 @@ transformed parameters {
 
 model {
   // params for Plot Effect
-  sigma_plot ~ normal(0, 1);
+  sigma_plot ~ normal(0, 3);
   lengthscale_plot ~ inv_gamma(5, 3);
   to_vector(z) ~ std_normal();
 
@@ -148,11 +148,11 @@ model {
     beta_f[i] ~ normal(0, 2);         // Hilbert Basis Coefficients
   }
   lengthscale_f ~ inv_gamma(5, 3);    // Gaussian Process lengthscale parameter
-  sigma_f ~ normal(0, 1);             // Gaussian Process variance parameter
+  sigma_f ~ normal(0, 3);             // Gaussian Process variance parameter
 
   // priors on Tau 
   for (i in 1:num_raters)
-    target += normal_lpdf(tau_rater[i] | 0, 2);
+    target += normal_lpdf(tau_rater[i] | 0, 5);
 
   // Modelling the target (y[n])
   for (n in 1:N)
