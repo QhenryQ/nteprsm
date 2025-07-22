@@ -7,7 +7,7 @@ SRC_DIR = resources.files("nteprsm")
 ROOT_DIR = SRC_DIR.parent
 
 # standard location for data files
-DATA_DIR = ROOT_DIR / "data"
+DATA_DIR = Path("/Users/henryqu/Library/CloudStorage/GoogleDrive-yqu@oxbridge-econ.com/My Drive/NTEP")
 
 # standard location to write log files
 LOG_DIR = ROOT_DIR / "logs"

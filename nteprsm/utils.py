@@ -14,6 +14,7 @@ import yaml
 import warnings
 from cmdstanpy.stanfit import CmdStanMCMC
 from scipy.special import softmax
+from scipy.spatial.distance import pdist, squareform
 
 from nteprsm.constants import MONTH_ABBR, MONTH_BINS
 from settings import LOG_DIR
@@ -144,235 +145,215 @@ def rsm_probability(y, theta, tau):
 
 
 class DataHandler:
+    """
+    DataHandler is a utility class for managing NTEP's turfgrass evaluation data,
+    supporting a structured pipeline from raw CSV input to Stan-compatible data
+    dictionaries for Bayesian modeling.
+
+    It operates in three stages:
+    1. `raw_data`: Unmodified data loaded from a CSV or DataFrame.
+    2. `model_data`: Transformed and enriched version used for diagnostics and modeling.
+    3. `stan_data`: A minimal, structured dictionary for use with Stan models.
+
+    Attributes:
+        target (str): The name of the target variable column.
+        filepath (Path or None): Path to the input CSV file (if provided).
+        logger (Logger): Logger instance for messaging and warnings.
+        raw_data (pd.DataFrame or None): Untransformed input data.
+        model_data (pd.DataFrame or None): Transformed modeling data.
+        stan_data (dict or None): Stan-compatible data dictionary.
+    """
     def __init__(
         self,
         target: str = "value",
         filepath: Optional[Path | str] = None,
-        logger: Optional[logging.Logger] = None,
+        logger: Optional[logging.Logger] = None
     ):
         """
-        Initialize the DataHandler with an optional file path for CSV data.
+        Initializes the DataHandler.
 
         Args:
-            filepath (Path, optional): The path to the file to load, only accept
-            CSV files for now. Defaults to None.
-            logger (Optional[logging.Logger]): Logger for logging data handling
-            processes.
+            target (str): The name of the target variable to model. Defaults to "value".
+            filepath (str or Path, optional): Path to a CSV file to automatically load. Defaults to None.
+            logger (Logger, optional): Optional logger to use. If not provided, a default logger is set up.
         """
-        self.filepath = Path(filepath)
-        self.logger = logger if logger is not None else setup_logging(LOG_DIR)
+        self.logger = logger or setup_logging(LOG_DIR)
         self.target = target
-        self.raw_data = None
-        self.model_data = None
-        self.stan_data = None
+        self.filepath = Path(filepath) if filepath else None
+        self.raw_data: Optional[pd.DataFrame]= None
+        self.model_data: Optional[pd.DataFrame] = None
+        self.stan_data: Optional[Dict]= None
 
-    def load_data(self, raw_data: pd.DataFrame) -> None:
+        # Automatically load data if filepath is provided
+        if self.filepath:
+            if self.filepath.suffix.lower() != ".csv":
+                self.logger.warning(f"Unsupported file type: {self.filepath.suffix}")
+            else:
+                try:
+                    self.load_data(pd.read_csv(self.filepath))
+                except Exception as e:
+                    self.logger.error(f"Failed to load data: {e}")
+
+    def __repr__(self):
         """
-        Load and preprocess raw data from a DataFrame.
+        Returns a string representation of the DataHandler instance.
 
-        - Creates a unique 'rating_event' identifier by combining 'rater' and formatted 'date'.
-        - Encodes 'rater' and 'rating_event' as 1-indexed categorical codes for Stan compatibility.
-        - Stores the processed DataFrame in self.raw_data.
+        Returns:
+            str: Representation showing the target variable and file path (if any).
+        """
+        return f"<DataHandler target={self.target} file={self.filepath}>"
+
+    def load_data(self, df: pd.DataFrame) -> None:
+        """
+        Loads and stores a raw input DataFrame as the baseline dataset (`raw_data`).
+
+        This method stores the original data without any modification. It is
+        intended to be the immutable source of truth for later transformations.
 
         Args:
-            raw_data (pd.DataFrame): Input DataFrame containing at least 'rater' and 'date' columns.
+            df (pd.DataFrame): Input data containing raw rating records.
+        """
+        self.raw_data = df.copy(deep=True)  # Immutable ground truth
+        self.logger.info("Raw data successfully loaded.")
+
+    def preprocess_data(self) -> None:
+        """
+        Processes the raw data to generate `model_data` for modeling.
+
+        Operations include:
+        - Parsing and adjusting dates for leap years.
+        - Encoding categorical columns (`rater`, `rating_event`) into numeric codes.
+        - Normalizing the target variable to start from 0.
+        - Calculating adjusted time of year and cumulative entry counts.
+        - Ensuring categorical code columns are continuous from 1 to max.
 
         Raises:
-            KeyError: If required columns ('rater', 'date') are missing.
-        """
-        required_cols = {"rater", "date"}
-        missing = required_cols - set(raw_data.columns)
-        if missing:
-            raise KeyError(f"Missing required columns: {missing}")
-
-        # Ensure 'date' is in datetime format for consistent processing
-        raw_data = raw_data.copy()
-        raw_data["date"] = pd.to_datetime(raw_data["date"], errors="coerce")
-        if raw_data["date"].isna().any():
-            warnings.warn(
-                f"Some dates could not be parsed and were set to NaT. "
-                f"Rows: {raw_data[raw_data['date'].isna()].index.tolist()}",
-                UserWarning,
-            )
-
-        # Create unique rating event identifier
-        raw_data["rating_event"] = (
-            raw_data["rater"].astype(str)
-            + "-"
-            + raw_data["date"].dt.strftime("%m-%d-%y")
-        )
-
-        # Encode as 1-indexed categorical codes for Stan
-        raw_data["rater_code"] = pd.Categorical(raw_data["rater"]).codes + 1
-        raw_data["rating_event_code"] = pd.Categorical(raw_data["rating_event"]).codes + 1
-
-        self.raw_data = raw_data
-        self.logger.info("Data loaded and processed from provided DataFrame.")
-
-    def preprocess_data(self):
-        """
-        Preprocess the loaded data for modeling.
-
-        Steps:
-        - Ensures required columns are present.
-        - Converts date column to datetime and adjusts day of year for leap years.
-        - Computes adjusted time of year and cumulative entry count.
-        - Normalizes the target variable to start at 0.
-        - Checks that *_code columns are continuous from 1 to max.
-
-        Raises:
-            Exception: If data is not loaded.
-            ValueError: If required columns are missing or codes are not continuous.
+            ValueError: If `raw_data` is not loaded or required columns are missing.
         """
         if self.raw_data is None:
-            raise Exception("Data not loaded. Call 'load_data' first.")
+            raise ValueError("Call `load_data()` before preprocessing.")
 
-        required_columns = [
-            "entry_code", "plot_code", "rater_code", "rating_event_code", "date",
-            self.target, "row", "col",
-        ]
-        missing = [col for col in required_columns if col not in self.raw_data.columns]
+        df = self.raw_data.copy()
+
+        required = ["rater", "date", "entry_code", "plot_code", "row", "col", self.target]
+        missing = [col for col in required if col not in df.columns]
         if missing:
-            raise ValueError(f"Missing required columns in data: {missing}")
+            raise ValueError(f"Missing required columns: {missing}")
 
-        model_data = self.raw_data[required_columns].copy()
+        # Process date
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        if df["date"].isna().any():
+            warnings.warn(f"Some dates could not be parsed: {df[df['date'].isna()].index.tolist()}")
 
-        # Parse dates and adjust day of year for leap years (Feb 29)
-        model_data["date"] = pd.to_datetime(model_data["date"], errors="coerce")
-        if model_data["date"].isna().any():
-            warnings.warn(
-            f"Some dates could not be parsed and were set to NaT. "
-            f"Rows: {model_data[model_data['date'].isna()].index.tolist()}",
-            UserWarning,
-            )
-        # Adjust day_of_year for leap years (remove Feb 29)
-        day_of_year = model_data["date"].dt.day_of_year
-        is_leap = model_data["date"].dt.is_leap_year
+        # Derived features
+        df["rating_event"] = df["rater"].astype(str) + "-" + df["date"].dt.strftime("%m-%d-%y")
+        df["rating_event_code"] = pd.Categorical(df["rating_event"]).codes + 1
+        df["rater_code"] = pd.Categorical(df["rater"]).codes + 1
+
+        # Time features (adjust for leap years)
+        day_of_year = df["date"].dt.day_of_year
+        is_leap = df["date"].dt.is_leap_year
         leap_correction = ((is_leap) & (day_of_year >= 60)).astype(int)
-        model_data["adj_day_of_year"] = day_of_year - leap_correction
-        model_data["adj_time_of_year"] = model_data["adj_day_of_year"] / 365
-        model_data["entry_cumcount"] = model_data.groupby("entry_code").cumcount() + 1
-        
+        df["adj_day_of_year"] = day_of_year - leap_correction
+        df["adj_time_of_year"] = df["adj_day_of_year"] / 365.0
 
-        # Normalize target to start at 0
-        model_data[self.target] -= model_data[self.target].min()
+        # Target normalization
+        df[self.target] = df[self.target] - df[self.target].min()
 
-        # Check columns are continuous from 1 to max
+
+        # Ensure categorical codes are continuous
         check_columns = [
-            col for col in model_data.columns
+            col for col in df.columns
             if col.endswith("_code") and col != self.target
         ]
-        
         for col in check_columns:
-            codes = model_data[col].unique()
+            codes = df[col].unique()
             if not np.array_equal(np.sort(codes), np.arange(1, codes.max() + 1)):
-                warnings.warn(
-                    f"Column '{col}' does not contain continuous codes starting from 1 to {codes.max()}. "
-                    "Fixing codes using pd.Categorical().codes + 1.",
-                    UserWarning,
-                )
-                model_data[col] = pd.Categorical(model_data[col]).codes + 1
+                warnings.warn(f"{col} not continuous. Re-encoding.")
+                df[col] = pd.Categorical(df[col]).codes + 1
 
-        self.model_data = model_data
-        self.logger.info("Data preprocessing completed.")
+        self.model_data = df
+        self.logger.info("Preprocessing complete. Model data ready.")
 
-    def generate_stan_data(
-        self,
-        plot_data: Optional[pd.DataFrame] = None,
-        **kwargs,
-    ) -> None:
+    def generate_stan_data(self, plot_data: Optional[pd.DataFrame] = None, **kwargs) -> None:
         """
-        Generate a data block formatted for input into a Stan model. This method
-        prepares the data by structuring it into a dictionary with keys and
-        values that Stan models require.
+        Generates a Stan-compatible data dictionary (`stan_data`) from `model_data`.
+
+        The dictionary contains structured arrays and scalars used in Stan models,
+        including codes, dimensions, target vector, and optional plot spatial data.
 
         Args:
-            plot_data (Optional[pd.DataFrame]): Data containing plot layout
-                information including 'row' and 'col' which can optionally be
-                provided externally. If None, it defaults to using the 'row' and
-                'col' values from `self.model_data`.
-            target (str): The name of the target variable column in
-                `self.model_data` to use for the Stan model. Defaults to
-                'quality'.
+            plot_data (pd.DataFrame, optional): External plot layout (mean row/col per plot_code).
+                If not provided, uses group-level means from `model_data`.
 
- 
+            **kwargs: Additional key-value pairs to inject into `stan_data`.
+
         Raises:
-            ValueError: If `self.model_data` is None, indicating that data has
-                not been loaded or processed properly before this method is called.
+            ValueError: If `model_data` is not prepared.
         """
         if self.model_data is None:
-            raise ValueError(
-                "Model data has not been loaded or preprocessed. \
-                Please load and preprocess data before generating Stan data."
-            )
+            raise ValueError("Call `preprocess_data()` before generating Stan data.")
 
-        self.logger.info("Generating data dictionary for the model...")
+        df = self.model_data
+
         if plot_data is None:
-            plot_data = self.model_data.groupby("plot_code")[["row", "col"]].mean()
+            plot_data = df.groupby("plot_code")[["row", "col"]].mean()
 
-        stan_data = {
-            "y": self.model_data[self.target].values,
-            "N": len(self.model_data[self.target]),
-            "num_ratings": int(self.model_data.rating_event_code.max()),
-            "num_raters": int(self.model_data.rater_code.max()),
-            "num_entries": int(self.model_data.entry_code.max()),
-            "num_plots": int(self.model_data.plot_code.max()),
-            "y_max": int(self.model_data[self.target].max()),
-            "rating_event_code": self.model_data.rating_event_code.values,
-            "entry_code": self.model_data.entry_code.values,
-            "plot_code": self.model_data.plot_code.values,
-            "rater_code": self.model_data.rater_code.values,
-            "DIST": self.calculate_distance_matrix(),
-            "num_ratings_per_entry": 
-                self.model_data.groupby("entry_code").count()["plot_code"].max(),
-            "num_rows": int(plot_data.row.max()),
-            "num_cols": int(plot_data.col.max()),
-            "plot_row": plot_data.row.astype(int).values,
-            "plot_col": plot_data.col.astype(int).values,
-            "time": self.model_data.adj_time_of_year.values,
-            "entry_cumcount": self.model_data.entry_cumcount.values,
+        self.stan_data = {
+            "y": df[self.target].values,
+            "N": len(df),
+            "num_ratings": int(df["rating_event_code"].max()),
+            "num_raters": int(df["rater_code"].max()),
+            "num_entries": int(df["entry_code"].max()),
+            "num_plots": int(df["plot_code"].max()),
+            "y_max": int(df[self.target].max()),
+            "rating_event_code": df["rating_event_code"].values,
+            "entry_code": df["entry_code"].values,
+            "plot_code": df["plot_code"].values,
+            "rater_code": df["rater_code"].values,
+            "DIST": self._calculate_distance_matrix(),
+            "num_rows": int(plot_data["row"].max()),
+            "num_cols": int(plot_data["col"].max()),
+            "plot_row": plot_data["row"].astype(int).values,
+            "plot_col": plot_data["col"].astype(int).values,
+            "time": df[["rating_event_code", "adj_time_of_year"]]
+                        .drop_duplicates()
+                        .sort_values("rating_event_code")
+                        .set_index("rating_event_code")
+                        .values.reshape(-1)
         }
 
-        stan_data.update(kwargs)
-        self.stan_data = stan_data
+        self.stan_data.update(kwargs)
+        self.logger.info("Stan data dictionary created.")
 
-    def calculate_distance_matrix(self):
-        if 'row' not in self.model_data.columns or 'col' not in self.model_data.columns:
-            raise ValueError("Plot coordinates ('row' and 'col') must be present in the data.")
+    def _calculate_distance_matrix(self) -> np.ndarray:
+        """
+        Computes the pairwise Euclidean distance matrix between plots using row/col coordinates.
 
-        plot_data = self.model_data[['plot_code', 'row', 'col']].drop_duplicates()
-        plot_coordinates = plot_data[['row', 'col']].values
-        
-        # Calculate pairwise Euclidean distances
-        from scipy.spatial.distance import pdist, squareform
-        distance_matrix = squareform(pdist(plot_coordinates))
+        Extracts unique plot positions from `model_data` and computes the
+        distance matrix using scipy's pdist and squareform utilities.
 
-        return distance_matrix
+        Returns:
+            np.ndarray: A square matrix of pairwise distances between plots.
 
-    # comment out this function for now. name2code mappping should be done on
-    # the trial level, making it consistent across all locations. 
+        Raises:
+            ValueError: If `model_data` is missing or required coordinate columns are absent.
+        """
+        if self.model_data is None:
+            raise ValueError("Model data not available.")
 
-    # def map_name2code(self, column_name, code_column_name, invert=False):
-    #     """
-    #     Retrieves a dictionary mapping names to codes from specified columns.
+        required = {"plot_code", "row", "col"}
+        if not required.issubset(self.model_data.columns):
+            raise ValueError("Missing plot coordinates for distance matrix.")
 
-    #     Args:
-    #         column_name(str): The name of the column containing the names(
-    #         e.g., 'ENTRY_NAME', 'RATER').
-    #         code_column_name(str): The name of the column containing the codes
-    #         (e.g., 'ENTRY_NAME_CODE', 'RATER_CODE').
-    #         invert(bool): If True, returns a dictionary mapping codes to names.
+        coords = (
+            self.model_data[["plot_code", "row", "col"]]
+            .drop_duplicates()
+            .sort_values("plot_code")[["row", "col"]]
+            .values
+        )
 
-    #     Returns:
-    #         dict: Depending on 'invert', returns either a dict of {name: code}
-    #         or {code: name}.
-    #     """
-    #     name2code = dict(self.model_data.groupby(column_name)[code_column_name].first())
-
-    #     if invert:
-    #         # Using dictionary comprehension for inverting the dictionary
-    #         return {int(code): name for name, code in name2code.items()}
-    #     return name2code
+        return squareform(pdist(coords))
 
 
 class PosteriorSampleAnalysis:

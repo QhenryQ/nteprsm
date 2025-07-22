@@ -1,0 +1,727 @@
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import plotly.io as pio
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import re
+from scipy.spatial import distance_matrix
+from scipy.special import softmax
+
+from nteprsm.constants import NTEP_COLOR_SCALE
+
+
+def set_custom_template():
+    """
+    Initializes and configures a custom Plotly template based on the "plotly_white" theme.
+    The customizations include setting specific dimensions, grid colors, line visibility,
+    tick positioning, and mirroring settings for the axes.
+
+    This function modifies the global pio.templates object by adding a new template named 'custom'
+    and sets it as the default template for all future plots.
+    """
+    # Clone an existing template
+    custom_template = pio.templates["plotly_white"].to_plotly_json()
+
+    # Modify the template
+    custom_template["layout"]["width"] = 800
+    custom_template["layout"]["height"] = 600
+    custom_template["layout"]["yaxis"]["gridcolor"] = "white"
+    custom_template["layout"]["yaxis"]["showline"] = True
+    custom_template["layout"]["yaxis"]["linecolor"] = "black"
+    custom_template["layout"]["yaxis"]["ticks"] = "outside"
+    custom_template["layout"]["yaxis"]["mirror"] = True
+    custom_template["layout"]["xaxis"]["gridcolor"] = "white"
+    custom_template["layout"]["xaxis"]["showline"] = True
+    custom_template["layout"]["xaxis"]["linecolor"] = "black"
+    custom_template["layout"]["xaxis"]["mirror"] = True
+    custom_template["layout"]["xaxis"]["ticks"] = "outside"
+    # tranparent background
+    custom_template["layout"]["plot_bgcolor"] = "rgba(0, 0, 0, 0)"
+    custom_template["layout"]["plot_bgcolor"] = "rgba(0, 0, 0, 0)"
+
+    # Save the custom template
+    pio.templates["custom"] = custom_template
+    pio.templates.default = "custom"
+
+
+def distmatrix_to_expquadkernel(dist_matrix, alpha, inv_rho, sigma_e):
+    """"
+    transform a distance matrix to exponential quadratic kernel for gaussian
+    process
+    k(x_i, x_j) = alpha^2 * exp(-0.5* (Dist_ij * inv_rho)^2) + \
+                  delta_{i,j}*sigma_e^2
+
+    Args:
+        dist_matrix:     Eucleadian distance matrix calculated from field layout
+        alpha:           marginal standard deviation, determines the average 
+                         distance from the mean
+        inv_rho:         inverse of the length parameter, determines the length 
+                         of the 'wiggles' of the function
+        sigma_e:         the addition of σ2 on the diagonal is important to 
+                         ensure the positive definiteness of the resulting 
+                         matrix in the case of two identical inputs. 
+                         In statistical terms,  σ is the scale of the noise term 
+                         in the regression. 
+
+    Returns:
+        kernel:          exponential quadratic kernel from distance matrix
+    """
+    kernel = alpha**2 * np.exp(-0.5 * np.square(dist_matrix * inv_rho))
+    np.fill_diagonal(kernel, kernel.diagonal() + sigma_e**2)
+    return kernel
+
+
+def transform_layout_to_long_format(
+    layout: pd.DataFrame, value_name: str
+) -> pd.DataFrame:
+    """
+    transform layout that is orgranized by row and column to long data format
+
+    Args:
+        layout (pd.DataFrame): field layout indexed by rows # and cols by col #
+        value_name(str)      : value name in the long data
+
+    Returns:
+        pd.DataFrame:          data frame in long format with ROW and COl
+    """
+    layout.index.name = "ROW"
+    layout = layout.reset_index().melt(
+        id_vars="ROW", var_name="COL", value_name=value_name
+    )
+    return layout
+
+
+def simulate_rating_scores(theta, beta, taus):
+    """
+    Simulate rating scores for a give theta value, rating severity (beta) and
+    rating thresholds (tau)
+
+    Args:
+        theta (float):             the perceived turf quality
+        beta (float):              rating severity
+        taus (np.array or list ):  category thresholds
+
+    Returns:
+        rating (int):              simulated rating score
+    """
+    unsumed = theta - beta - taus
+    unsumed = np.insert(unsumed, 0, 0)
+    numerators = np.exp(np.cumsum(unsumed))
+    denominators = sum(numerators)
+    probs = numerators / denominators
+    # sample rating from the probabilities
+    rating = np.random.choice(range(1, len(taus) + 2), p=probs)
+    return rating
+
+
+def get_model_data(data, **kwargs):
+    """
+    get model_data for stan from ntep data.
+
+    Args:
+       data(pd.DataFrame):        raw NTEP rating data
+
+    Returns:
+       model_data(dict):          model_data in format of a dictionary
+    """
+
+    y = np.asarray(data.QUALITY - data.QUALITY.min())  # y start from one
+    ii = np.asarray(data.RATING_EVENT_CODE)
+    jj = np.asarray(data.ENTRY_CODE)
+    pp = np.asarray(data.PLOC_CODE)
+    # tt = np.asarray(data.YEAR_CODE)
+    # kk = np.asarray(data.MONTH_CODE)
+    N = len(y)
+    M = len(np.unique(y)) - 1
+    I = max(ii)
+    J = max(jj)
+    P = max(pp)
+    # T = max(tt)
+    # K = max(kk)
+    model_data = {
+        "y": y,
+        "ii": ii,
+        "jj": jj,
+        "pp": pp,
+        "N": N,
+        "M": M,
+        "I": I,
+        "J": J,
+        "P": P,
+    }
+    for key, value in kwargs.items():
+        model_data[key] = value
+    return model_data
+
+
+def plot_ratings_over_time(data, plot_dims=[5.5, 5.5]):
+    """
+    plot rating data over time
+    Args:
+        data (dataframe): data (columns: row, col, date and rating)
+        plot_dims (list, optional): _description_. Defaults to [5.5, 5.5].
+
+    Returns:
+        plotly figure object
+    """
+    dfs = [
+        data[data.DATE == date].reset_index(drop=True) for date in data.DATE.unique()
+    ]
+    # generate the frames. NB name
+    frames = [
+        go.Frame(
+            data=go.Heatmap(
+                z=df.QUALITY,
+                y=df.ROW,
+                x=df.COL,
+                hoverinfo="text",
+                text=[
+                    "Entry:" + name + "<br />Quality:" + str(quality)
+                    for name, quality in zip(df.ENTRY_NAME, df.QUALITY)
+                ],
+                colorscale=[NTEP_COLOR_SCALE[i] for i in np.sort(df.QUALITY.unique())],
+            ),
+            name=df.DATE[0].strftime("%b, %Y"),
+        )
+        for df in dfs
+    ]
+
+    fig = go.Figure(data=frames[0].data, frames=frames)
+    fig.update_layout(
+        updatemenus=[
+            {
+                "buttons": [
+                    {
+                        "args": [None, {"frame": {"duration": 500, "redraw": True}}],
+                        "label": "Play",
+                        "method": "animate",
+                    },
+                    {
+                        "args": [
+                            [None],
+                            {
+                                "frame": {"duration": 0, "redraw": False},
+                                "mode": "immediate",
+                                "transition": {"duration": 0},
+                            },
+                        ],
+                        "label": "Pause",
+                        "method": "animate",
+                    },
+                ],
+                "type": "buttons",
+            }
+        ],
+        # iterate over frames to generate steps... NB frame name...
+        sliders=[
+            {
+                "steps": [
+                    {
+                        "args": [
+                            [f.name],
+                            {
+                                "frame": {"duration": 0, "redraw": True},
+                                "mode": "immediate",
+                            },
+                        ],
+                        "label": f.name,
+                        "method": "animate",
+                    }
+                    for f in frames
+                ],
+            }
+        ],
+        width=10 * plot_dims[0] * data.COL.max(),
+        height=10 * plot_dims[1] * data.ROW.max(),
+        yaxis={"title": "Row #", "tick0": 1, "dtick": 1},
+        xaxis={"title": "Col #", "tickangle": 0, "side": "top", "tick0": 1, "dtick": 1},
+        title_x=0.5,
+    )
+    return fig
+
+
+def plot_field_heat_map(
+    plt_effect, row_id, col_id, entry_name, fig_width=400, fig_height=600
+):
+    fig6 = go.Figure()
+    fig6.add_traces(
+        go.Heatmap(
+            z=plt_effect,
+            y=row_id,
+            x=col_id,
+            hoverinfo="text",
+            text=["Entry:" + name for name in entry_name],
+        )
+    )
+    fig6.update_layout(
+        width=fig_width,
+        height=fig_height,
+        title="Plot Location Effect",
+        yaxis={"title": "Row #", "tick0": 1, "dtick": 1},
+        xaxis={
+            "title": "Col #",
+            "tickangle": 0,
+            "side": "bottom",
+            "tick0": 1,
+            "dtick": 1,
+        },
+    )
+    fig6.show()
+
+
+def calc_dist_matrix(
+    layout_data, index_col="PLOC_CODE", row_len=5.5, col_len=5.5, row_gap=0, col_gap=0
+):
+    """
+    layout data with three columns:
+    SERP_ID: serialized plot id
+    ROW: row id
+    COL: col id
+    index_col: index column
+    row_len: row length
+    col_len: column length
+    row_gap: row gap length
+    col_gap: column gap length
+    given plot layout_data calculate distance matrix
+    """
+    layout_data = layout_data.set_index(index_col)
+    layout_data.sort_index(inplace=True)
+    layout_data = layout_data[["ROW", "COL"]]
+    # rescale row and col coords based on plot dimension
+    layout_data = layout_data.assign(
+        ROW=layout_data.ROW * (col_len + col_gap) / (row_len + row_gap)
+    )
+    coords = layout_data.values
+    dist_matrix = distance_matrix(coords, coords)
+    dist_matrix = dist_matrix.astype(float)
+    return dist_matrix
+
+
+def subset_target_data(target, ntep_data, col_name="QUALITY"):
+    """subset target data from all ratings"""
+    ntep_qual = ntep_data[ntep_data.TRAIT.str.startswith(target)]
+    ntep_qual = ntep_qual.astype({"VALUE": int})
+    ntep_qual.rename(columns={"VALUE": col_name}, inplace=True)
+    return ntep_qual
+
+
+def get_entry_id2name_map(ntep_data):
+    id_to_name = ntep_data.groupby("ENTRY_ID").apply(
+        lambda x: x["ENTRY_NAME"].unique().tolist()
+    )
+    ids_to_save = id_to_name[id_to_name.apply(lambda x: len(x) == 1)]
+    ids_1 = ids_to_save.apply(lambda x: x[0].strip())
+    ids_to_check = id_to_name[id_to_name.apply(lambda x: len(x) > 1)]
+    ids_2 = ids_to_check.apply(select_cultivar_name)
+    id_to_name = pd.concat([ids_1, ids_2]).sort_index().to_dict()
+    return id_to_name
+
+
+def select_cultivar_name(name_list):
+    name_list = [x.strip() for x in name_list]
+    string_lens = [len(x) for x in name_list]
+
+    shortest_name = name_list[string_lens.index(min(string_lens))]
+    name_list.remove(shortest_name)
+
+    name_list_new = [x for x in name_list if shortest_name.lower() in x.lower()]
+    if len(name_list_new) >= 1:
+        final_name = name_list_new[0]
+    else:
+        final_name = shortest_name
+    return final_name
+
+
+def extract(variable, results, n_burnin=400):
+    col_name = variable.upper() + "_EFF"
+    var_name = variable.upper() + "_CODE"
+    str_to_drop = variable + "."
+    results_data = results[results.index > n_burnin]
+    variable_data = pd.DataFrame(
+        results_data.loc[
+            :,
+            (results_data.columns.str.startswith(variable))
+            & (~results_data.columns.str.contains("free")),
+        ].mean(),
+        columns=[col_name],
+    )
+    try:
+        variable_data[var_name] = variable_data.index.str.replace(
+            str_to_drop, ""
+        ).astype(int)
+    except TypeError:
+        print("Warning: Typing Failed...")
+    variable_data.reset_index(drop=True, inplace=True)
+    return variable_data
+
+
+def plot_thresholds(kappa):
+    """
+    plot estimated thresholds
+
+    Args:
+        kappa (pd.Series): thresholds
+    """
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(x=kappa, y=[0] * 8, mode="markers", marker_size=15, hoverinfo="x")
+    )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(
+        showgrid=False,
+        zeroline=True,
+        zerolinecolor="black",
+        zerolinewidth=3,
+        showticklabels=False,
+    )
+    fig.update_layout(height=200, plot_bgcolor="white")
+    fig.show()
+
+
+def predict_rating_histogram(theta, kappa):
+    unsummed = np.array([theta] * 9) - np.array([0] + list(kappa))
+    summed = np.cumsum(unsummed)
+    px.bar(softmax(summed))
+
+
+# load data from individual chain
+def load_data_from_chain_csvs(path_to_file="", n_chain=4):
+    results = []
+    for i in range(n_chain):
+        chain = pd.read_csv(path_to_file[:-5] + f"{i+1}.csv", comment="#")
+        chain = chain.assign(chain=f"{i+1}")
+        results.append(chain)
+    results = pd.concat(results, ignore_index=False)
+    return results
+
+
+def plot_effect_size(results_data):
+    var_data = (
+        results_data.loc[:, (~results_data.columns.str.contains("free"))]
+        .filter(regex="year|month|entry|beta|plot")
+        .mean()
+        .reset_index()
+    )
+    var_data[["VAR", "CODE"]] = var_data["index"].str.split(".", expand=True)
+    var_data.rename(columns={0: "VALUE"}, inplace=True)
+    fig = px.box(
+        var_data,
+        y="VAR",
+        x="VALUE",
+        category_orders={"VAR": ["month", "year", "plot", "entry", "beta"]},
+        labels={"VALUE": "Effect Size on Logit Scale", "VAR": ""},
+    )
+    fig.update_layout(
+        yaxis=dict(
+            tickmode="array",
+            tickvals=["plot", "beta", "month", "year", "entry"],
+            ticktext=[
+                "Plot Location Effect",
+                "Rating Severity",
+                "Month Effect",
+                "Year Effect",
+                "Entry Quality",
+            ],
+        )
+    )
+    fig.show()
+
+
+def convert_minutes_to_decimal_degrees(degree_minutes: str)->float:
+    """convert degree minutes to decimal degrees
+
+    Args:
+        degree_minutes (str): lattiude or longitude in degree minutes
+
+    Returns:
+        float: lattitude or longitude decimal degrees
+    """
+    dmsd = [s for s in re.split("º|°|'|\"| ", degree_minutes) if s]
+    if dmsd[-1] not in ["N", "S", "E", "W"]:
+        raise ValueError("Invalid degree minutes format")
+    else:
+        dms = dmsd[:-1]  
+
+    if len(dms) == 3:
+        degrees, minutes, seconds = map(int, dms)
+    elif len(dms) == 2:
+        degrees, minutes = map(int, dms)
+        seconds = 0
+    elif len(dms) == 1:
+        degrees = int(dms[0])
+        minutes = 0
+        seconds = 0
+    
+    decimal_degrees = degrees + minutes / 60 + seconds / 3600
+    return (-1)**("S" == dmsd[-1] or "W" == dmsd[-1]) * decimal_degrees
+
+## Helper functions
+def rbf_kernel_2D(
+    x1: np.ndarray, 
+    x2: np.ndarray, 
+    length_scale: float = 1.0, 
+    variance: float = 1.0
+) -> float:
+    """
+    Computes the Radial Basis Function (RBF) kernel (also known as Gaussian kernel) 
+    between two 2D points.
+
+    Args:
+        x1 (np.ndarray): The first 2D point as a NumPy array.
+        x2 (np.ndarray): The second 2D point as a NumPy array.
+        length_scale (float, optional): The length scale parameter of the RBF kernel. 
+            Controls the smoothness of the kernel. Default is 1.0.
+        variance (float, optional): The variance (amplitude) parameter of the RBF kernel. 
+            Controls the overall scale of the kernel. Default is 1.0.
+
+    Returns:
+        float: The computed RBF kernel value between the two points.
+    """
+    # Squared Euclidean distance
+    sqdist = np.sum((x1 - x2) ** 2)
+    return variance * np.exp(-0.5 * sqdist / length_scale**2)
+
+def generate_plot_effect_gaussian_process(
+    grid_width: int,
+    grid_height: int,
+    length_scale: float = 1.0,
+    variance: float = 1.0,
+    mean: float = 0.0
+) -> np.ndarray:
+    """
+    Generates a 2D grid of values sampled from a Gaussian process with a radial basis function (RBF) kernel.
+
+    Args:
+        grid_width (int): The width of the grid (number of points along the x-axis).
+        grid_height (int): The height of the grid (number of points along the y-axis).
+        length_scale (float, optional): The length scale parameter of the RBF kernel. Default is 1.0.
+        variance (float, optional): The variance parameter of the RBF kernel. Default is 1.0.
+        mean (float, optional): The mean of the Gaussian process. Default is 0.0.
+
+    Returns:
+        np.ndarray: A 2D numpy array of shape (grid_width, grid_height) containing the sampled values.
+    """
+    # Create the grid
+    x = np.arange(grid_width)
+    y = np.arange(grid_height)
+    grid_points = np.array([[i, j] for i in x for j in y])  # All (x, y) pairs
+    n = len(grid_points)
+
+    # Compute the covariance matrix
+    K = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            K[i, j] = rbf_kernel_2D(grid_points[i], grid_points[j], length_scale, variance)
+
+    # Add a small value to the diagonal for numerical stability
+    K += 1e-6 * np.eye(n)
+
+    # Sample from the multivariate Gaussian distribution
+    gp_values = np.random.multivariate_normal(mean * np.ones(n), K)
+
+    # Reshape to a 2D grid
+    gp_grid = gp_values.reshape((grid_width, grid_height))
+
+    return gp_grid
+
+def periodic_kernel(
+    x1: float, 
+    x2: float, 
+    length_scale: float = 1.0, 
+    variance: float = 1.0, 
+    period: float = 1.0
+) -> float:
+    """
+    Periodic kernel function for 1D inputs.
+
+    Args:
+        x1 (float): First input value.
+        x2 (float): Second input value.
+        length_scale (float, optional): Length scale parameter. Default is 1.0.
+        variance (float, optional): Variance parameter. Default is 1.0.
+        period (float, optional): Periodicity parameter. Default is 1.0.
+
+    Returns:
+        float: The computed kernel value.
+    """
+    dist = np.abs(x1 - x2)
+    sin_term = np.sin(np.pi * dist / period)  # Sinusoidal periodicity
+    return variance * np.exp(-2 * (sin_term**2) / length_scale**2)
+
+def generate_1d_gaussian_process(
+    extra_points: int = 0,
+    length_scale: float = 1.0,
+    variance: float = 1.0,
+    period: float = 1.0,
+    inp_arr: list = None,
+    mean: float = 0.0,
+    force_mean: bool = True
+) -> tuple:
+    """
+    Generate a 1D Gaussian Process with a periodic kernel.
+
+    Args:
+        extra_points (int): Number of extra evenly spaced points to add between 0 and 1.
+        length_scale (float): Length scale parameter of the periodic kernel.
+        variance (float): Variance parameter of the periodic kernel.
+        period (float): Periodicity parameter of the periodic kernel.
+        inp_arr (list): Input array of points.
+        mean (float): Mean of the Gaussian process.
+        force_mean (bool): Whether to force the mean of the samples to match the specified mean.
+
+    Returns:
+        tuple: A tuple containing the input array and the generated Gaussian process samples.
+    """
+    if inp_arr is None:
+        inp_arr = []
+    x = inp_arr.copy()
+    # Define the 1D grid
+    if extra_points > 1:
+        x.extend(list(np.linspace(0, 1, extra_points, endpoint=False)))  # Inputs evenly spaced between 0 and 1
+    x = np.array(x)
+    n = len(x)
+
+    assert n > 1
+
+    # Compute the covariance matrix
+    K = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            K[i, j] = periodic_kernel(x[i], x[j], length_scale, variance, period)
+    
+    # Add a small jitter for numerical stability
+    K += 1e-6 * np.eye(n)
+
+    # Sample from the multivariate Gaussian
+    gp_samples = np.random.multivariate_normal(mean * np.ones(n), K)
+
+    if force_mean:
+        gp_samples = gp_samples - np.mean(gp_samples) + mean
+
+    assert len(gp_samples) == n
+    
+    return x, gp_samples
+
+def rsm_probability(
+    y: int, 
+    theta: np.ndarray, 
+    tau: np.ndarray
+) -> float:
+    """
+    Calculates the probability of a given class label in the model.
+
+    Args:
+        y (int): The class label for which the probability is calculated.
+        theta (np.ndarray): An array of model parameters.
+        tau (np.ndarray): The threshold parameters for the model.
+
+    Returns:
+        float: The probability of the given class label.
+    """
+    unsummed = np.concatenate(([0], theta - tau))
+    probs = softmax(np.cumsum(unsummed))
+    return probs[y]
+
+def rsm_probability_vector(
+    theta: np.ndarray, 
+    tau: np.ndarray
+) -> np.ndarray:
+    """
+    Calculates the probability of a set of class labels in the given model.
+
+    Args:
+        theta (np.ndarray): An array of model parameters.
+        tau (np.ndarray): The threshold parameters for the model.
+
+    Returns:
+        np.ndarray: Array of probabilities for the given class labels.
+    """
+    unsummed = np.concatenate(([0], theta - tau))
+    probs = softmax(np.cumsum(unsummed))
+    return probs
+
+def plot_rater_characteristic_curve_matplotlib(
+    taus: np.ndarray,
+    min_theta: float = -6,
+    max_theta: float = 6,
+    resolution: int = 500,
+    colors: dict = NTEP_COLOR_SCALE,
+    dimensions: tuple = None,
+):
+    """
+    Plot the characteristic curves for raters using Matplotlib and the RSM probability function.
+
+    Args:
+        taus (np.ndarray): Threshold parameters for the model.
+        min_theta (float, optional): Minimum value of the latent scale. Defaults to -6.
+        max_theta (float, optional): Maximum value of the latent scale. Defaults to 6.
+        resolution (int, optional): Number of points to evaluate between min_theta and max_theta. Defaults to 500.
+        colors (dict, optional): Dictionary of colors for categories. If None, a colormap is used.
+        dimensions (tuple, optional): Dimensions of the figure in inches (width, height).
+
+    Returns:
+        matplotlib.figure.Figure: The figure object containing the plot.
+    """
+    x = np.linspace(min_theta, max_theta, int((max_theta - min_theta) * resolution))
+    num_categories = len(taus) + 1
+
+    if colors is None:
+        cmap = plt.get_cmap('Spectral', num_categories)
+        colors = {i + 1: cmap(i) for i in range(num_categories)}
+
+    fig, ax = plt.subplots(figsize=dimensions if dimensions else (10, 6))
+
+    taus_with_bounds = np.concatenate(([min_theta], taus, [max_theta]))
+
+    # Plot probability curves
+    for i in range(num_categories):
+        y_vals = [rsm_probability(i, np.array([theta]), taus) for theta in x]
+        ax.plot(x, y_vals, label=f'Category {i + 1}', color=colors[i + 1], linewidth=2)
+
+        # Highlight threshold regions
+        rect = patches.Rectangle(
+            (taus_with_bounds[i], 1.02),
+            taus_with_bounds[i + 1] - taus_with_bounds[i],
+            0.08,
+            linewidth=0,
+            color=colors[i + 1],
+            alpha=0.6
+        )
+        ax.add_patch(rect)
+
+        # Dashed vertical line for each tau
+        if i < len(taus):
+            ax.axvline(taus[i], color=colors[i + 1], linestyle='dotted')
+
+    ax.set_xlabel("Turf Quality on Latent Scale")
+    ax.set_ylabel("Probability")
+    ax.set_ylim(0, 1.12)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")  # Move legend to the right of the plot
+    ax.set_title("Rater Characteristic Curves")
+
+    plt.tight_layout()
+    return fig
+
+
+def map_name2code(datahandler, column_name, code_column_name, invert=False):
+    """Retrieves a dictionary mapping names to codes from specified columns."""
+    name2code = dict(datahandler.model_data.groupby(column_name)[code_column_name].first())
+    if invert:
+        name2code = {v: k for k, v in name2code.items()}
+    return name2code
+
+def extract_time_effect(datahandler: "utils.DataHandler", fit: "stan fit object") -> pd.DataFrame:
+    """Extract and format the time effect from a fitted model object."""
+    raing_event2doy = datahandler.model_data[['adj_time_of_year', 'rating_event_code']].drop_duplicates(
+        ).sort_values(by='rating_event_code')
+    time_effect = pd.DataFrame(
+        fit.stan_variable("time_effect").mean(axis=0),
+        columns=raing_event2doy['adj_time_of_year'].values
+    )
+    
+    time_effect.index = time_effect.index
+    time_effect = time_effect.T.sort_index()
+    time_effect.index.name = 'adj_time_of_year'
+    return time_effect
