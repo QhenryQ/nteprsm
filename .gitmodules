@@ -1,0 +1,3 @@
+[submodule "reports/manuscript2"]
+	path = reports/manuscript2
+	url = https://github.com/QhenryQ/nteprsm-manuscript2.git
