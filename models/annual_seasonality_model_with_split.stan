@@ -1,10 +1,11 @@
 // Description: Stan model for spatial and temporal effects, in which we assume
-// that the raters are consistent across different rating events. The observed
-// turf trait is modeled as a function of the spatial effect, the annual 
-// seasonality effect, and the rater severity. The spatial effect is modeled
-// using a Gaussian process with RBF kernel, and the annual seasonality effect 
-// is modeled as a Gaussian process with periodic kernel. The rater severity is
-// modeled using a Rasch-Andrich model. 
+// that rater-specific category-threshold behavior is stable across rating
+// events. The observed turf trait is modeled as a function of the spatial
+// effect and the annual seasonality effect. Observed ratings are linked to the
+// latent trait through rater-specific category thresholds under a
+// Rasch-Andrich model. The spatial effect is modeled using a Gaussian process
+// with an RBF kernel, and the annual seasonality effect is modeled using a
+// Gaussian process with a periodic kernel.
 
 functions {
   #include gptools/util.stan
@@ -70,7 +71,7 @@ data {
   array[N] int<lower=1> rating_event_code; // rating event of response n
   array[num_ratings] real time;       // time of year corresponding to each rating event, float frmo 0-1
 
-  // data needed for rater information
+  // data needed for rater-specific category thresholds
   int<lower=1> num_raters;                            // total number of distinct raters
   array[N] int<lower=1, upper=num_raters> rater_code; // rater code of response n
 
@@ -124,7 +125,7 @@ parameters {
   real<lower=0> lengthscale_f;                    // shared lengthscale of GP
   real<lower=0> sigma_f;                          // shared scale(variance) of GP
 
-  // Rater parameters
+  // Rater-specific category thresholds
   array[num_raters] vector[y_max] tau_rater;      // since y is 0-indexed, y_max = num_thresholds
 }
 
@@ -165,7 +166,7 @@ model {
   lengthscale_f ~ inv_gamma(5, 3);    // Gaussian Process lengthscale parameter
   sigma_f ~ normal(0, 3);             // Gaussian Process variance parameter
 
-  // priors on Tau 
+  // priors on rater-specific category thresholds
   for (i in 1:num_raters)
     target += normal_lpdf(tau_rater[i] | 0, 5);
 

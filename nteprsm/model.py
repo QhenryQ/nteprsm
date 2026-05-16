@@ -14,7 +14,6 @@ def main(config_file: str):
     datahandler = utils.DataHandler(
         filepath=config["data_path"], logger=logger
     )
-    datahandler.load_data()
     datahandler.preprocess_data()
     datahandler.generate_stan_data(**config["stan_additional_data"])
 
@@ -34,3 +33,5 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     main(args.config_file)
+# adding example usage to run the model
+# python nteprsm/model.py config_file=configs/seasonality_nj2_quality.yaml

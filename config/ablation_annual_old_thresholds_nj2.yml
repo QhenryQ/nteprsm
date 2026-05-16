@@ -1,0 +1,20 @@
+data_path: "/Users/henryqu/Library/CloudStorage/GoogleDrive-yqu@oxbridge-econ.com/My Drive/NTEP/data_ingestion/parsed_data/kb2017/nj2/quality.csv"
+stan_file: "models/annual_seasonality_model_old_thresholds.stan"
+stan_additional_data:
+  # additional input for Stan model data block
+  M_f: 8 # number of basis functions
+  pred_N: 100 # number of prediction times in a year
+  padding: 5 # padding of grid in Fourier method
+sampling:
+  parallel_chains: 4
+  seed: 1
+  show_progress: True
+  adapt_delta: 0.99
+  max_treedepth: 15
+  refresh: 20
+  iter_warmup: 500
+  iter_sampling: 1500
+  save_warmup: True
+  output_dir: "data/model_output/nj2_ablation_annual_old_thresholds"
+  time_fmt: "%Y%m%d"
+  show_console: True

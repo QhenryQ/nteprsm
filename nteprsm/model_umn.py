@@ -4,32 +4,35 @@ import argparse
 import pickle
 from datetime import datetime
 
-import pandas as pd
 from cmdstanpy import CmdStanModel
 
 from gptools.stan import get_include
 from nteprsm import utils
-from settings import CONFIG_DIR
+from settings import CONFIG_DIR, ROOT_DIR, DATA_DIR
 
 
-def main(config_file: str, data_path: str, working_dir: str, model_output_file: str):
+def main(config_file: str, 
+         data_path: str, 
+         working_dir: str, 
+         model_output_file: str
+         ):
+    """Run the Stan model fitting process.
+
+    Args:
+        config_file (str): Configuration file name located in CONFIG_DIR
+        data_path (str): File to process
+        working_dir (str): Working directory for this run
+        model_output_file (str): Output pickle file
+    """
     
     os.makedirs(working_dir, exist_ok=True)
     logger = utils.setup_logging(working_dir)
     
     config = utils.load_config(config_file)
     config["data_path"] = data_path
-    
-    # process data
-    df = pd.read_csv(config["data_path"])  # Replace 'file.csv' with your file path
-    # convert all code to 1-indexed as stan is 1-indexed
-    df["rating_event"] = df["rater"] + '-' + pd.to_datetime(df["date"], format="%m/%d/%y").dt.strftime("%m-%d-%y")
-    df["rater_code"] = pd.Categorical(df["rater"]).codes + 1
-    df["rating_event_code"] = pd.Categorical(df["rating_event"]).codes + 1
-    
-    # cretae data handler
-    datahandler = utils.DataHandler(filepath=config["data_path"])
-    datahandler.load_data(raw_data=df)
+
+    # create data handler
+    datahandler = utils.DataHandler(filepath=data_path)
     datahandler.preprocess_data()
     datahandler.generate_stan_data(**config["stan_additional_data"])
     

@@ -30,19 +30,19 @@ Minimum validation package:
 
 | ID | Priority | Issue to address | Cross-validation verdict | Concrete action | Evidence or analysis required | Planned manuscript output |
 | --- | --- | --- | --- | --- | --- | --- |
-| A1 | Critical | Abstract and discussion overclaim robustness, scalability, and future multi-location readiness | Strong reviewer point | Rewrite title, abstract, plain-language summary, discussion, and conclusion as a single-site methods contribution | no new analysis required, but final wording must match added validation results | revised title, abstract, conclusion, and scope statements |
+| A1 (done) | Critical | Abstract and discussion overclaim robustness, scalability, and future multi-location readiness | Strong reviewer point | Rewrite title, abstract, plain-language summary, discussion, and conclusion as a single-site methods contribution | no new analysis required, but final wording must match added validation results | revised title, abstract, conclusion, and scope statements |
 | A2 | Critical | Validation is too dependent on same-family parameter recovery | Strong reviewer point | Add one real-data held-out predictive analysis and one posterior predictive validation block | held-out prediction plus PPC outputs | new validation subsection in Results and Discussion |
 | A3 | Critical | Model comparison is confounded because multiple changes were introduced together | Strong reviewer point | Rebuild comparison language and, if feasible, run limited ablation ladder | ELPD differences with uncertainty; optional intermediate model fits | revised comparison table and causal interpretation text |
-| A4 | Critical | Four-entry illustration is too selective for the practical claims | Strong reviewer point | Add a whole-dataset seasonality summary across all 89 entries | derived summary metrics for each entry | one new figure plus one compact summary table |
-| A5 | High | Identification story is implicit rather than explicit | Strong but fixable by exposition | Add a compact identification paragraph explaining latent-scale anchoring, fixed discrimination, and threshold centering | no new analysis required unless sensitivity is added | revised Methods subsection |
-| A6 | High | Fixed discrimination is weakly justified as written | Strong reviewer point, but not fatal | Reframe as a modeling choice for identifiability and tractability; add sensitivity only if feasible | optional sensitivity text or exploratory variant | revised Methods and Discussion text |
-| A7 | High | Threshold irregularity for Rater E may indicate instability or genuine behavior | Justified but needs careful framing | Discuss as an empirical pattern under the current model and not over-interpret it | optional threshold summary or sensitivity note | revised Results and Discussion |
-| A8 | High | Climate/biology versus rater-driven temporal variation is sometimes blurred | Justified reviewer point | Clarify that the estimated temporal component is a latent model-based seasonality term after adjustment, not direct proof of causal climate effects | no new analysis required | tightened Discussion language |
-| A9 | High | Operational interpretation of the latent scale is still mostly conceptual | Strong reviewer point | Add one concrete translation from latent-scale results to an average-rater or standardized interpretation | summary mapping or worked example using real entries | expanded Results interpretation section |
-| A10 | Medium | Computational gain is discussed more clearly than fit-complexity tradeoff | Justified reviewer point | Add explicit discussion of `p_loo`, uncertainty, and practical significance | revised comparison statistics | revised Results and Discussion paragraphs |
-| A11 | Medium | Limitations are back-loaded | Strong reviewer point | Move key limitations earlier and distinguish present evidence from future work | no new analysis required | revised Introduction ending and Limitations section |
-| A12 | Medium | Prior terminology and writing are inconsistent | Clear editorial issue | Reconcile weakly informative versus empirically informed language and line edit the paper | no new analysis required | copyedited Methods and Discussion |
-| A13 | Medium | Figure axes, terminology, and typographic issues reduce credibility | Clear editorial issue | Correct labels, captions, and terminology after substantive edits are done; known typos: "Radical Basis Function" → "Radial Basis Function", "Seaonality" → "Seasonality", "Catogory" → "Category", "a entry" → "an entry" (line 358) | no new analysis required | corrected figures and final copyedit |
+| A4 (done) | Critical | Results are too selective and narrative for a methods paper that claims cultivar-level decision support | Strong reviewer point | Replace the four-entry story as the main results artifact with a systematic whole-dataset seasonality summary across all 89 entries | derived entry-level metrics for seasonal amplitude, peak timing, decline timing, uncertainty, and ranking- or cluster-oriented summaries | one new all-entry figure plus one manuscript table reporting the requested entry-level details |
+| A5 (done) | High | Identification story is implicit rather than explicit | Strong but fixable by exposition | Add a compact identification paragraph explaining latent-scale anchoring, fixed discrimination, and threshold centering | no new analysis required unless sensitivity is added | revised Methods subsection |
+| A6 (done) | High | Fixed discrimination is weakly justified as written | Strong reviewer point, but not fatal | Reframe as a modeling choice for identifiability and tractability; add sensitivity only if feasible | optional sensitivity text or exploratory variant | revised Methods and Discussion text |
+| A7 (done) | High | Threshold irregularity for Rater E may indicate instability or genuine behavior | Justified but needs careful framing | Discuss as an empirical pattern under the current model and not over-interpret it | optional threshold summary or sensitivity note | revised Results and Discussion |
+| A8 (done) | High | Climate/biology versus rater-driven temporal variation is sometimes blurred | Justified reviewer point | Clarify that the estimated temporal component is a latent model-based seasonality term after adjustment, not direct proof of causal climate effects | no new analysis required | tightened Discussion language |
+| A9 (done) | High | Operational interpretation of the latent scale is still mostly conceptual | Strong reviewer point | Add one concrete translation from latent-scale results to an average-rater or standardized interpretation | summary mapping or worked example using real entries | expanded Results interpretation section |
+| A10 (done) | Medium | Computational gain is discussed more clearly than fit-complexity tradeoff | Justified reviewer point | Add explicit discussion of `p_loo`, uncertainty, and practical significance | revised comparison statistics | revised Results and Discussion paragraphs |
+| A11 (done) | Medium | Limitations are back-loaded | Strong reviewer point | Move key limitations earlier and distinguish present evidence from future work | no new analysis required | revised Introduction ending and Limitations section |
+| A12 (done) | Medium | Prior terminology and writing are inconsistent | Clear editorial issue | Reconcile weakly informative versus empirically informed language and line edit the paper | no new analysis required | copyedited Methods and Discussion |
+| A13 (done) | Medium | Figure axes, terminology, and typographic issues reduce credibility | Clear editorial issue | Correct labels, captions, and terminology after substantive edits are done; known typos: "Radical Basis Function" → "Radial Basis Function", "Seaonality" → "Seasonality", "Catogory" → "Category", "a entry" → "an entry" (line 358) | no new analysis required | corrected figures and final copyedit |
 
 ## Concrete analysis plan
 
@@ -99,7 +99,7 @@ Implementation note:
 
 **Detailed implementation steps for Olena**:
 
-**Step 1. Choose held-out events** (Henry decides, Olena implements):
+**Step 1. Choose held-out events** :
 
 - NJ2 has 35 rating events. Hold out 7 events (~20%), spread across the season.
 - Sort events by `adj_time_of_year` and pick every 5th event so the held-out set covers all seasons.
@@ -114,7 +114,7 @@ dh = DataHandler(filepath="path/to/quality.csv")
 dh.load_data()
 dh.preprocess_data()
 
-held_out = [5, 10, 15, 20, 25, 30, 35]  # Henry confirms these
+held_out = [5, 10, 15, 20, 25, 30, 35]  
 train_data, test_data = dh.split_by_rating_event(held_out, M_f=8, pred_N=100, padding=5)
 ```
 
@@ -354,24 +354,29 @@ Purpose:
 
 - replace the current four-entry story as the main empirical summary
 - show that the framework yields systematic outputs across the full trial rather than only illustrative examples
+- answer the reviewer's request for cultivar-level decision support with entry-by-entry summaries rather than qualitative narration
 
 Summary statistics per entry:
 
 - posterior mean seasonal amplitude
 - day-of-year of posterior mean peak
 - day-of-year of posterior mean minimum
+- day-of-year of posterior mean decline after the seasonal peak, defined operationally in a reproducible way for the table note
 - peak-to-trough spread with uncertainty
 - posterior uncertainty in peak timing
+- posterior uncertainty in decline timing
+- optional cluster or ranking label if a simple and stable grouping emerges from the fitted curves
 
 Planned outputs:
 
 - Figure R1: heatmap or dot-and-interval plot across all 89 entries showing peak timing and seasonal amplitude
-- Table R1: compact top and bottom entries by seasonal amplitude or peak quality, with uncertainty intervals
+- Table R1: entry-level summary table reporting seasonal amplitude, peak timing, decline timing, and uncertainty measures, with either top-bottom rankings in the manuscript and the full table in supplement, or a compact manuscript table if space permits
 
 Recommendation on format:
 
 - use the figure for all 89 entries
-- keep the table short and decision-oriented so the manuscript remains readable
+- keep the manuscript table short and decision-oriented so the manuscript remains readable
+- if the full 89-entry table is too large for the main text, place the complete version in an appendix or supplement and retain a concise ranking table in the paper body
 
 Interpretation rule:
 
@@ -494,7 +499,7 @@ Implementation note:
 | --- | --- | --- | --- |
 | V1 | Held-out predictive metrics | support strengthened validation | log score, ranked probability score, exact and adjacent accuracy |
 | M1 | Corrected model comparison | fix current comparison language | `elpd_loo`, SE, `elpd_diff`, diff SE, `p_loo`, runtime |
-| R1 | Compact seasonality ranking summary | support decision relevance | selected entries with amplitude, peak timing, uncertainty |
+| R1 | Whole-dataset seasonality summary table | support decision relevance and address reviewer concern about selectivity | seasonal amplitude, peak timing, decline timing, uncertainty, plus ranking or grouped highlights for selected entries |
 
 ### Optional stretch tables
 
