@@ -400,6 +400,38 @@ class PosteriorSampleAnalysis:
         pred_data.columns.name = "entry_name_code"
         return pred_data
 
+    def get_fitted_statistics(self, func, *args, **kwargs):
+        """
+        Get fitted time effects at the rating days, one row per adj_day_of_year.
+
+        Column k of `time_effect` belongs to rating_event_code k + 1. Those
+        codes follow the sorted "rater-mm-dd-yy" labels, not the date or row
+        order, so each column takes its day from its own rating event. Rating
+        events on the same day of year share the same seasonal value and are
+        averaged into one row.
+
+        Args:
+            func (callable): The function to apply to the fitted values.
+            *args: Additional positional arguments to pass to the function.
+            **kwargs: Additional keyword arguments to pass to the function.
+
+        Returns:
+            pd.DataFrame: Fitted values indexed by adj_day_of_year, one column
+            per entry, numbered like `get_predicted_statistics`.
+        """
+        data = func(self.stanmcmc.time_effect, axis=0, *args, **kwargs).T
+        event_days = (
+            self.datahandler.model_data[["rating_event_code", "adj_day_of_year"]]
+            .drop_duplicates()
+            .set_index("rating_event_code")["adj_day_of_year"]
+        )
+        fit_data = pd.DataFrame(data)
+        fit_data.index = event_days.loc[np.arange(1, len(fit_data) + 1)].values
+        fit_data = fit_data.groupby(level=0).mean()
+        fit_data.index.name = "adj_day_of_year"
+        fit_data.columns.name = "entry_name_code"
+        return fit_data
+
     def get_predicted_monthly_means(
         self,
         pred_means,
@@ -476,6 +508,7 @@ class PosteriorSampleAnalysis:
 
         # Retrieve and prepare data
         means = self.get_predicted_statistics(np.mean)
+        fitted = self.get_fitted_statistics(np.mean)
         # Sorting entries if required
         monthly_means = self.get_predicted_monthly_means(means)
 
@@ -495,12 +528,6 @@ class PosteriorSampleAnalysis:
                 + f"accept one {MONTH_ABBR}."
             )
 
-        # Retrieve rating data
-        ratings = self.datahandler.model_data
-        ratings = ratings.loc[
-            ratings.entry_name_code.isin(entry_codes),
-            ["adj_day_of_year", "entry_name_code"],
-        ]
         code2name = self.datahandler.map_name2code(
             "entry_name", "entry_name_code", invert=True
         )
@@ -514,10 +541,8 @@ class PosteriorSampleAnalysis:
         # prepare variables and plot
         for ix, code in enumerate(entry_codes):
             # retrieve fitted values
-            x = ratings.loc[ratings.entry_name_code == code, "adj_day_of_year"].values
-            idx = np.argsort(x)
-            x_fitted = x[idx]
-            y_fitted = self.stanmcmc.time_effect[:, code].mean(axis=0)[idx]
+            x_fitted = fitted.index.values
+            y_fitted = fitted[code].values
             entry_name = code2name[code]
             # plotting fitted values
             fig.add_trace(
